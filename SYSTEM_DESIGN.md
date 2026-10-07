@@ -57,3 +57,151 @@ Also handled in Phase 1.
 - **Scalability.** System handles concurrent interview sessions without the database becoming a bottleneck. Active session data is cached in Redis, permanent data lives in PostgreSQL.
 - **LLM rate limit handling.** A Redis queue absorbs excess LLM requests at scale. No request fails, they wait in the queue.
 - **Rate limiting per user.** Maximum 10 LLM calls per minute per user, to prevent abuse and control API cost.
+
+---
+
+## 6. Core Entities
+
+The main objects the system stores and works with.
+
+**User**
+- id, name, email, google_oauth_id, created_at
+
+**Resume**
+- id, user_id, raw_text, detected_level (easy/medium/hard), confirmed_level, created_at
+
+**Project**
+- id, user_id, input_type (readme/github/paste), raw_content, extracted_summary, github_token (encrypted), created_at
+
+**Session**
+- id, user_id, project_id, difficulty_level, status (ongoing/completed), started_at, ended_at
+
+**Message**
+- id, session_id, role (ai/user), content, question_number, score (out of 10), feedback, created_at
+
+**Report**
+- id, session_id, overall_score, strong_areas, weak_areas, answer_structure_feedback, show_preparation_guide (boolean), created_at
+
+---
+
+## 7. API Design
+
+### POST /api/resume/upload
+Upload resume, scan it, return detected level.
+
+Request:
+```json
+{ "file": "pdf" }
+```
+Response:
+```json
+{ "detected_level": "easy/medium/hard", "resume_id": "string" }
+```
+
+### POST /api/project
+Submit project input.
+
+Request:
+```json
+{
+  "input_type": "readme/github/paste",
+  "content": "string",
+  "github_token": "string (optional)"
+}
+```
+Response:
+```json
+{ "project_id": "string", "extracted_summary": "string" }
+```
+
+### POST /api/session/confirm-level
+User confirms or changes the detected level.
+
+Request:
+```json
+{ "resume_id": "string", "confirmed_level": "easy/medium/hard" }
+```
+Response:
+```json
+{ "confirmed": true, "level": "string" }
+```
+
+### POST /api/session/start
+Start the interview session and get the first question.
+
+Request:
+```json
+{ "project_id": "string", "level": "easy/medium/hard" }
+```
+Response:
+```json
+{
+  "session_id": "string",
+  "question": "string",
+  "question_number": 1,
+  "timer_seconds": 108
+}
+```
+
+### POST /api/session/answer
+Submit an answer, get score, feedback and the next question.
+
+Request:
+```json
+{ "session_id": "string", "question_number": 1, "answer": "string" }
+```
+Response:
+```json
+{
+  "score": 7,
+  "feedback": "string",
+  "next_question": "string",
+  "question_number": 2,
+  "session_complete": false
+}
+```
+
+### POST /api/session/{session_id}/end
+Mark the session complete and trigger report generation.
+
+Request:
+```json
+{ "session_id": "string" }
+```
+Response:
+```json
+{ "session_id": "string", "report_id": "string" }
+```
+
+### GET /api/session/{session_id}/report
+Get the final session report.
+
+Response:
+```json
+{
+  "overall_score": 7,
+  "per_question_scores": [],
+  "strong_areas": "string",
+  "weak_areas": "string",
+  "answer_structure_feedback": "string",
+  "show_preparation_guide": false
+}
+```
+
+### GET /api/sessions
+Get all past sessions for the logged in user.
+
+Response:
+```json
+{
+  "sessions": [
+    {
+      "session_id": "string",
+      "date": "string",
+      "overall_score": 7,
+      "level": "string",
+      "status": "string"
+    }
+  ]
+}
+```
