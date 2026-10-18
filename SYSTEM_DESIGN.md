@@ -205,3 +205,52 @@ Response:
   ]
 }
 ```
+
+---
+
+## 8. High Level Design
+
+### 1. Project Input and Extraction
+
+**Problem**
+
+We need enough project context to run a deep technical interview. How do we get meaningful content out of whatever the user submits?
+
+**Approach 1: Manual form**
+
+User fills a form and types project details by hand.
+
+Problem: the user controls what they share, so the input is biased and incomplete. The LLM only knows what the user wanted to tell it. It cannot ask deep, implementation specific questions.
+
+**Approach 2: Send the full codebase**
+
+User submits all their code and we send everything to the LLM.
+
+Solves: the LLM sees the real implementation, not the user's filtered version.
+
+New problem: too expensive and too many tokens. The LLM loses focus in 10,000 lines of code, and interview quality actually drops.
+
+**Approach 3: Selective extraction (final)**
+
+Three input options: README upload, GitHub private repo via personal token, or pasted code. From whatever the user gives us, we extract only:
+
+- README: project overview and tech stack
+- File tree: architecture at a glance
+- Function signatures: core logic without implementation noise
+
+Solves Approach 1: the LLM sees the real project, not the user's filtered version.
+
+Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and asks specific questions.
+
+**Diagram**
+
+```mermaid
+flowchart TD
+    A[README Upload] --> N[Normalizer]
+    B[GitHub URL] --> N
+    C[Paste Code] --> N
+    N --> E[Extractor]
+    E --> O["README + File Tree + Signatures"]
+    O --> L[LLM Context Builder]
+    L --> D[(PostgreSQL)]
+```
