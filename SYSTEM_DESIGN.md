@@ -71,20 +71,50 @@ The main objects the system stores and works with.
 - id, user_id, raw_text, detected_level (easy/medium/hard), confirmed_level, created_at
 
 **Project**
-- id, user_id, input_type (readme/github/paste), raw_content, extracted_summary, github_token (encrypted), created_at
+- id, user_id, input_type (readme/github/paste), raw_content, extracted_summary, detected_technologies, github_token (encrypted), created_at
 
 **Session**
 - id, user_id, project_id, difficulty_level, status (ongoing/completed), started_at, ended_at
 
 **Message**
-- id, session_id, role (ai/user), content, question_number, score (out of 10), feedback, created_at
+- id, session_id, role (ai/user), content, question_number, question_id (null for LLM questions), score (out of 10), feedback, created_at
 
 **Report**
 - id, session_id, overall_score, strong_areas, weak_areas, answer_structure_feedback, show_preparation_guide (boolean), created_at
 
+**Question**
+- id, text, type (generic/technology), technology (null for generic), difficulty_level (easy/medium/hard), created_at
+
 ---
 
 ## 7. API Design
+
+### GET /api/auth/google
+Start Google login. Redirects the user to Google.
+
+### GET /api/auth/google/callback
+Google redirects back here with a code. We create the user if new and start a login session (cookie).
+
+Response:
+```json
+{ "user": { "id": "string", "name": "string", "email": "string" } }
+```
+
+### GET /api/auth/me
+Get the logged in user.
+
+Response:
+```json
+{ "id": "string", "name": "string", "email": "string" }
+```
+
+### POST /api/auth/logout
+End the login session.
+
+Response:
+```json
+{ "success": true }
+```
 
 ### POST /api/resume/upload
 Upload resume, scan it, return detected level.
