@@ -245,3 +245,21 @@ Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and 
 **Diagram**
 
 ![Project input and extraction](diagrams/project-input-extraction.svg)
+
+---
+
+## 9. Component Breakdown
+
+Components used in the project input diagram.
+
+- **Client:** the web app the user uses to submit their project.
+- **API Gateway:** single entry point for every request, runs the checks below before anything reaches the services.
+- **Rate Limiter:** stops a user from sending too many requests in a minute.
+- **Authentication:** checks who the user is before letting the request through.
+- **Routing / Load Balancer:** sends the request to the right service and spreads traffic across instances.
+- **Service Layer:** the backend logic that turns raw project input into interview context.
+- **Normalizer:** converts README, GitHub and pasted code into one common format.
+- **Extractor:** pulls out only the README, file tree and function signatures.
+- **LLM Context Builder:** packs the extracted data into a short summary the LLM can use to ask questions.
+- **GitHub API:** external API we call to fetch repo files, only when the input has a GitHub URL.
+- **PostgreSQL:** main database, stores users and projects (token stored encrypted).
