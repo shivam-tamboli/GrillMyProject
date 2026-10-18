@@ -144,13 +144,21 @@ Response:
 ```
 
 ### POST /api/session/answer
-Submit an answer, get score, feedback and the next question.
+Submit an answer. Scoring happens async, so this returns right away. The result comes through the stream below.
 
 Request:
 ```json
 { "session_id": "string", "question_number": 1, "answer": "string" }
 ```
 Response:
+```json
+{ "status": "processing", "question_number": 1 }
+```
+
+### GET /api/session/{session_id}/stream
+Open a server-sent events (SSE) stream. After each answer, it pushes the score, feedback and next question when the LLM is done.
+
+Event data:
 ```json
 {
   "score": 7,
