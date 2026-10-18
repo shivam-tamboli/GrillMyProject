@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 400" width="1150" height="400" font-family="Arial, Helvetica, sans-serif" font-size="14">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#222"/>
+    </marker>
+  </defs>
+  <rect width="1150" height="400" fill="#fff"/>
+
+  <!-- input sources -->
+  <ellipse cx="100" cy="90" rx="85" ry="32" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="100" y="95" text-anchor="middle">README Upload</text>
+  <ellipse cx="100" cy="200" rx="85" ry="32" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="100" y="196" text-anchor="middle">GitHub Repo</text>
+  <text x="100" y="213" text-anchor="middle" font-size="12">(personal token)</text>
+  <ellipse cx="100" cy="310" rx="85" ry="32" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="100" y="315" text-anchor="middle">Paste Code</text>
+
+  <!-- inputs to normalizer -->
+  <line x1="180" y1="105" x2="268" y2="180" stroke="#222" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="185" y1="200" x2="268" y2="200" stroke="#222" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="180" y1="295" x2="268" y2="222" stroke="#222" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- normalizer -->
+  <rect x="270" y="165" width="130" height="70" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="335" y="205" text-anchor="middle">Normalizer</text>
+  <line x1="400" y1="200" x2="478" y2="200" stroke="#222" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- extractor -->
+  <rect x="480" y="165" width="130" height="70" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="545" y="205" text-anchor="middle">Extractor</text>
+  <line x1="610" y1="200" x2="758" y2="200" stroke="#222" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="684" y="170" text-anchor="middle" font-size="12">README</text>
+  <text x="684" y="186" text-anchor="middle" font-size="12">File Tree + Signatures</text>
+
+  <!-- context builder -->
+  <rect x="760" y="165" width="150" height="70" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="835" y="200" text-anchor="middle">LLM Context</text>
+  <text x="835" y="218" text-anchor="middle">Builder</text>
+  <line x1="910" y1="200" x2="988" y2="200" stroke="#222" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- database -->
+  <path d="M990,170 L990,235 A50,14 0 0 0 1090,235 L1090,170" fill="#fff" stroke="#222" stroke-width="2"/>
+  <ellipse cx="1040" cy="170" rx="50" ry="14" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="1040" y="212" text-anchor="middle">PostgreSQL</text>
+</svg>

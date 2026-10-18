@@ -244,13 +244,4 @@ Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and 
 
 **Diagram**
 
-```mermaid
-flowchart TD
-    A[README Upload] --> N[Normalizer]
-    B[GitHub URL] --> N
-    C[Paste Code] --> N
-    N --> E[Extractor]
-    E --> O["README + File Tree + Signatures"]
-    O --> L[LLM Context Builder]
-    L --> D[(PostgreSQL)]
-```
+![Project input and extraction](diagrams/project-input-extraction.svg)
