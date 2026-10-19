@@ -282,7 +282,44 @@ Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and 
 
 **Diagram**
 
-![Project input and extraction](diagrams/project-input-extraction.svg)
+```mermaid
+flowchart LR
+    Client([Client])
+
+    subgraph GW[API Gateway]
+        direction TB
+        RL[Rate Limiter]
+        AUTH[Authentication]
+        LB[Routing / Load Balancer]
+    end
+
+    subgraph SVC[Service Layer]
+        direction TB
+        N[Normalizer]
+        E[Extractor]
+        B[LLM Context Builder]
+        N --> E --> B
+    end
+
+    GH["GitHub API<br/>(external)"]
+
+    subgraph PG[PostgreSQL]
+        direction LR
+        subgraph U[User]
+            direction TB
+            u1["id<br/>name<br/>email<br/>google_oauth_id<br/>created_at"]
+        end
+        subgraph P[Project]
+            direction TB
+            p1["id<br/>user_id (FK: User.id)<br/>input_type<br/>raw_content<br/>extracted_summary<br/>detected_technologies<br/>github_token (encrypted)<br/>created_at"]
+        end
+    end
+
+    Client -->|request| GW
+    GW --> SVC
+    SVC -->|only if input has a GitHub URL| GH
+    SVC -->|save| PG
+```
 
 ---
 
