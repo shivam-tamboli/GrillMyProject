@@ -339,7 +339,7 @@ Solves Approach 2: the user validates what the LLM detected. Human confirmation 
 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 120}}}%%
-flowchart TD
+flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Extract resume text<br/>• Call LLM"]
@@ -350,8 +350,6 @@ flowchart TD
     GW --> SVC
     SVC -->|resume text| LLM
     SVC -->|save detected level| PG
-    SVC -->|show detected level| Client
-    Client -->|confirm or correct| SVC
     SVC -->|save confirmed level| PG
 ```
 
