@@ -315,9 +315,9 @@ When a user comes to the platform, we don't know their experience level. Without
 
 **Approach 1: Manual selection**
 
-User selects their own level: Fresher, Mid, or Senior.
+User selects their own level: Easy, Medium, or Hard.
 
-Problem: users lie to themselves. A fresher picks Senior to feel good. The interview is calibrated wrong and the experience breaks down.
+Problem: users lie to themselves. A beginner picks Hard to feel good. The interview is calibrated wrong and the experience breaks down.
 
 **Approach 2: LLM scans resume and decides**
 
@@ -349,8 +349,13 @@ flowchart LR
     Client -->|"upload resume"| GW
     GW --> SVC
     SVC -->|"resume text"| LLM
-    SVC -->|"save level"| PG
+    SVC -->|"detected level"| PG
+    SVC -->|"show detected level"| Client
+    Client -->|"confirm or correct"| SVC
+    SVC -->|"update confirmed_level"| PG
 ```
+
+detected_level is what LLM found. confirmed_level is what the user validated. If the user corrects the level, confirmed_level is updated. detected_level stays unchanged so we can track LLM accuracy over time.
 
 ### 3. Live Interview Session
 
