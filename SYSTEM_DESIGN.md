@@ -376,32 +376,32 @@ Solves Approach 2: the question bank saves cost. The LLM is only used where it a
 
 ```mermaid
 flowchart LR
-    Client([Client])
+    Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score tracking<br/>• Difficulty upgrade"]
-    QB["Question Bank<br/>(first 8-10 questions)"]
-    LLM["LLM<br/>(external)"]
+    QB[Question Bank]
+    LLM["LLM<br/>external"]
     RD[(Redis)]
     PG[(PostgreSQL)]
 
-    Client -->|"answer"| GW
+    Client -->|answer| GW
     GW --> SVC
-    SVC -->|"next question"| Client
-    SVC -->|"first 8-10 only"| QB
-    QB -->|"question"| SVC
-    SVC -->|"after bank exhausted"| LLM
-    LLM -->|"question, score, feedback"| SVC
-    SVC -->|"update session"| RD
-    SVC -->|"save answers, scores"| PG
+    SVC -->|next question| Client
+    SVC -->|first 8-10 questions| QB
+    QB -->|question| SVC
+    SVC -->|after bank exhausted| LLM
+    LLM -->|question + score + feedback| SVC
+    SVC -->|update conversation history| RD
+    SVC -->|save question + answer + score| PG
 ```
 
-Difficulty upgrades automatically when the score is consistently 7+ out of 10.
+Difficulty upgrades automatically when score is consistently 7+ out of 10.
 
 ---
 
 ## 9. Component Breakdown
 
-Components used in the project input diagram.
+Components used across the HLD diagrams.
 
 - **Client:** the web app the user uses to submit their project.
 - **API Gateway:** single entry point for every request, runs the checks below before anything reaches the services.
@@ -414,3 +414,6 @@ Components used in the project input diagram.
 - **LLM Context Builder:** packs the extracted data into a short summary the LLM can use to ask questions.
 - **GitHub API:** external API we call to fetch repo files, only when the input has a GitHub URL.
 - **PostgreSQL:** main database, stores users and projects (token stored encrypted).
+- **LLM:** external AI service. Used for resume level detection, generating deep dive questions, scoring answers, and coaching the user when stuck.
+- **Redis:** stores the full conversation history of the active interview session in memory. Every question and answer is added here in real time so the LLM always has context for the next question. Cleared when the session ends. Used because it is much faster than reading from PostgreSQL on every question.
+- **Question Bank:** stores generic opening questions and technology specific questions. Handles the first 8-10 questions of every interview without calling the LLM. Saves API cost and keeps opening questions consistent.
