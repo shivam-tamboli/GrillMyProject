@@ -295,7 +295,6 @@ flowchart TD
     GW --> SVC
     SVC --> PG
     SVC -->|"GitHub URL only"| GH
-    GH -->|"repo files"| SVC
 ```
 
 ### 2. Resume Scan and Level Detection
@@ -340,9 +339,6 @@ flowchart TD
     Client -->|"upload resume"| GW
     GW --> SVC
     SVC -->|"resume text"| LLM
-    LLM -->|"detected level"| SVC
-    SVC -->|"detected level"| Client
-    Client -->|"confirm / correct"| SVC
     SVC -->|"save confirmed level"| PG
 ```
 
@@ -377,7 +373,8 @@ Solves Approach 2: the question bank saves cost. The LLM is only used where it a
 **Diagram**
 
 ```mermaid
-flowchart LR
+%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
+flowchart TD
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score tracking<br/>• Difficulty upgrade"]
@@ -388,11 +385,8 @@ flowchart LR
 
     Client -->|answer| GW
     GW --> SVC
-    SVC -->|next question| Client
     SVC -->|first 8-10 questions| QB
-    QB -->|question| SVC
     SVC -->|after bank exhausted| LLM
-    LLM -->|question + score + feedback| SVC
     SVC -->|update conversation history| RD
     SVC -->|save question + answer + score| PG
 ```
@@ -441,11 +435,8 @@ flowchart TD
     Client -->|session ends| GW
     GW --> SVC
     SVC -->|read all questions + answers + scores| PG
-    PG -->|session data| SVC
     SVC -->|summarize into report| LLM
-    LLM -->|overall score + weak areas + feedback| SVC
     SVC -->|save report| PG
-    SVC -->|report + preparation guide if needed| Client
 ```
 
 Preparation guide is shown automatically when LLM detects answers were unstructured or shallow.
