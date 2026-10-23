@@ -397,6 +397,56 @@ flowchart LR
 
 Difficulty upgrades automatically when score is consistently 7+ out of 10.
 
+### 4. Report Generation
+
+**Problem**
+
+When the interview ends, the user needs to understand where they did well and where they failed, not just a single number, but enough detail to know what to work on next.
+
+**Approach 1: Single overall score**
+
+At the end of the interview show one number. Example: 7 out of 10.
+
+Problem: the user knows they scored 7 but has no idea where they did well or where they failed. No direction on what to improve.
+
+**Approach 2: Score per topic**
+
+Show score per technology or topic. Redis: 7/10. Database: 2/10. JWT: 8/10.
+
+Solves Approach 1: the user now knows which areas are weak.
+
+New problem: still just numbers. No explanation of why they scored low and no guidance on what to do next. The user knows they are bad at database but does not know how to fix it.
+
+**Approach 3: Real time scoring + detailed report + preparation guide (final)**
+
+Every answer is scored and saved during the interview with a one line explanation of what was wrong. When the session ends, the Service Layer reads all saved scores and calls the LLM to summarize them into a full report: overall score, per question score, weak areas, strong areas, and honest feedback on answer quality. If answers were unstructured, a preparation guide is shown automatically.
+
+Solves Approach 1: full breakdown, not just one number.
+
+Solves Approach 2: not just scores but an explanation of what was wrong and how to improve.
+
+**Diagram**
+
+```mermaid
+flowchart LR
+    Client(Client)
+    GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
+    SVC["<b>Service Layer</b><br/>• Reads session data<br/>• Generates report<br/>• Checks preparation guide flag"]
+    LLM["LLM<br/>external"]
+    PG[(PostgreSQL)]
+
+    Client -->|session ends| GW
+    GW --> SVC
+    SVC -->|read all questions + answers + scores| PG
+    PG -->|session data| SVC
+    SVC -->|summarize into report| LLM
+    LLM -->|overall score + weak areas + feedback| SVC
+    SVC -->|save report| PG
+    SVC -->|report + preparation guide if needed| Client
+```
+
+Preparation guide is shown automatically when LLM detects answers were unstructured or shallow.
+
 ---
 
 ## 9. Component Breakdown
