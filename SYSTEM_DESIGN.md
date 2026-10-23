@@ -338,8 +338,8 @@ Solves Approach 2: the user validates what the LLM detected. Human confirmation 
 **Diagram**
 
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
-flowchart LR
+%%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 120}}}%%
+flowchart TD
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Extract resume text<br/>• Call LLM"]
