@@ -303,6 +303,7 @@ flowchart LR
     GW --> SVC
     SVC --> PG
     SVC -->|"token + repo url"| GH
+    GH -.->|"repo files"| SVC
 ```
 
 For GitHub input, repo files are fetched before normalization. For README upload and pasted code, content goes directly to the Normalizer.
@@ -446,18 +447,23 @@ Solves Approach 2: not just scores but an explanation of what was wrong and how 
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
-    SVC["<b>Service Layer</b><br/>• Reads session data<br/>• Generates report<br/>• Checks preparation guide flag"]
+    SVC["<b>Service Layer</b><br/>• Read all session data<br/>• Send to LLM for assessment<br/>• Close session + clear Redis"]
     LLM["LLM<br/>external"]
+    RD[(Redis)]
     PG[(PostgreSQL)]
 
     Client -->|session ends| GW
     GW --> SVC
-    SVC -->|read session| PG
-    SVC -->|summarize report| LLM
+    SVC -->|all questions + answers + scores| PG
+    PG -.->|session data| SVC
+    SVC -->|assess + score everything| LLM
+    LLM -.->|overall score + weak areas + feedback| SVC
     SVC -->|save report| PG
+    SVC -->|close session, clear Redis| RD
+    SVC -.->|report + feedback| Client
 ```
 
-Preparation guide is shown automatically when LLM detects answers were unstructured or shallow.
+LLM receives all questions, answers and scores from the session. It returns an overall score, weak areas, strong areas, and honest feedback on answer quality. Redis is cleared after the session closes to free memory.
 
 ---
 
