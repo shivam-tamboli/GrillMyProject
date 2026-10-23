@@ -340,19 +340,19 @@ Solves Approach 2: the user validates what the LLM detected. Human confirmation 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
 flowchart LR
-    Client([Client])
+    Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Extract resume text<br/>• Call LLM"]
-    LLM["LLM<br/>(external)"]
+    LLM["LLM<br/>external"]
     PG[(PostgreSQL)]
 
-    Client -->|"upload resume"| GW
+    Client -->|upload resume| GW
     GW --> SVC
-    SVC -->|"resume text"| LLM
-    SVC -->|"detected level"| PG
-    SVC -->|"show detected level"| Client
-    Client -->|"confirm or correct"| SVC
-    SVC -->|"update confirmed_level"| PG
+    SVC -->|resume text| LLM
+    SVC -->|save detected level| PG
+    SVC -->|show detected level| Client
+    Client -->|confirm or correct| SVC
+    SVC -->|save confirmed level| PG
 ```
 
 detected_level is what LLM found. confirmed_level is what the user validated. If the user corrects the level, confirmed_level is updated. detected_level stays unchanged so we can track LLM accuracy over time.
