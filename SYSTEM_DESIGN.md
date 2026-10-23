@@ -459,14 +459,14 @@ Components used across the HLD diagrams.
 - **Client:** the web app the user uses. Built with Next.js.
 - **API Gateway:** single entry point for all requests. Handles rate limiting, authentication, and load balancing before anything reaches the services.
 - **Rate Limiter:** stops a user from sending too many requests in a short time. Prevents abuse and controls API cost.
-- **Authentication:** checks who the user is before letting the request through.
-- **Routing / Load Balancer:** sends the request to the right service and spreads traffic across instances.
-- **Service Layer:** the backend logic that turns raw project input into interview context.
-- **Normalizer:** converts README, GitHub and pasted code into one common format.
-- **Extractor:** pulls out only the README, file tree and function signatures.
-- **LLM Context Builder:** packs the extracted data into a short summary the LLM can use to ask questions.
-- **GitHub API:** external API we call to fetch repo files, only when the input has a GitHub URL.
-- **PostgreSQL:** main database, stores users and projects (token stored encrypted).
-- **LLM:** external AI service. Used for resume level detection, generating deep dive questions, scoring answers, and coaching the user when stuck.
-- **Redis:** stores the full conversation history of the active interview session in memory. Every question and answer is added here in real time so the LLM always has context for the next question. Cleared when the session ends. Used because it is much faster than reading from PostgreSQL on every question.
-- **Question Bank:** stores generic opening questions and technology specific questions. Handles the first 8-10 questions of every interview without calling the LLM. Saves API cost and keeps opening questions consistent.
+- **Authentication:** checks the user is logged in via Google OAuth before letting the request through.
+- **Routing / Load Balancer:** spreads traffic evenly across service instances so no single server gets overloaded.
+- **Service Layer:** the FastAPI backend. Contains all business logic including interview management, scoring, report generation, and project extraction.
+- **Normalizer:** converts all three project input types (README, GitHub URL, pasted code) into one standard format before extraction.
+- **Extractor:** pulls only the README, file tree, and function signatures from the normalized content. Discards everything else.
+- **LLM Context Builder:** packages extracted content into a structured prompt context ready for the interview session.
+- **GitHub API:** external service called only when the user inputs a GitHub URL. Fetches repo files using the personal token.
+- **LLM:** external AI service used for resume level detection, generating deep dive questions, scoring answers per question, coaching when stuck, and summarizing the final report.
+- **Redis:** stores active session conversation history in memory during a live interview. Much faster than PostgreSQL for frequent reads. Cleared when the session ends.
+- **Question Bank:** stores generic opening questions and technology specific questions. Used for the first 8-10 questions to save LLM API cost.
+- **PostgreSQL:** main database. Stores users, resumes, projects, sessions, messages, and reports permanently.
