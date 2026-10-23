@@ -532,16 +532,16 @@ SSE is chosen over WebSocket because our use case is one directional — server 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
-    Client("<b>Client</b><br/>• Renders tokens in real time")
+    Client["<b>Client</b><br/>• Renders tokens in real time"]
     SVC["<b>Service Layer</b><br/>• Receives answer<br/>• Calls LLM<br/>• Streams tokens via SSE"]
     LLM["LLM<br/>external"]
     PG[(PostgreSQL)]
 
     Client -->|answer| SVC
-    SVC -->|score + next question| LLM
-    LLM -.->|tokens stream| SVC
-    SVC -.->|SSE stream| Client
+    SVC -->|score + generate question| LLM
+    LLM -.->|token stream| SVC
     SVC -->|save answer + score| PG
+    SVC -.->|SSE stream| Client
 ```
 
 LLM starts generating immediately. Tokens are streamed to the client as they are produced. User sees the next question appearing word by word. No blank screen. No waiting.
