@@ -284,7 +284,7 @@ Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and 
 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
-flowchart LR
+flowchart TD
     Client([Client])
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>Normalizer<br/>↓<br/>Extractor<br/>↓<br/>LLM Context Builder"]
@@ -330,7 +330,7 @@ Solves Approach 2: the user validates what the LLM detected. Human confirmation 
 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
-flowchart LR
+flowchart TD
     Client([Client])
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Extract resume text<br/>• Call LLM"]
@@ -431,7 +431,7 @@ Solves Approach 2: not just scores but an explanation of what was wrong and how 
 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
-flowchart LR
+flowchart TD
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Reads session data<br/>• Generates report<br/>• Checks preparation guide flag"]
