@@ -533,13 +533,12 @@ SSE is chosen over WebSocket because our use case is one directional — server 
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
     Client["<b>Client</b><br/>• Renders tokens in real time"]
-    SVC["<b>Service Layer</b><br/>• Receives answer<br/>• Calls LLM<br/>• Streams tokens via SSE"]
+    SVC["<b>Service Layer</b><br/>• Receives answer<br/>• Calls LLM<br/>• Streams response via SSE"]
     LLM["LLM<br/>external"]
     PG[(PostgreSQL)]
 
     Client -->|answer| SVC
     SVC -->|score + generate question| LLM
-    LLM -.->|token stream| SVC
     SVC -->|save answer + score| PG
     SVC -.->|SSE stream| Client
 ```
