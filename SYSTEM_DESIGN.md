@@ -349,7 +349,7 @@ flowchart LR
     Client -->|upload resume| GW
     GW --> SVC
     SVC -->|resume text| LLM
-    LLM -->|detected level| SVC
+    LLM -.->|detected level| SVC
     SVC -->|save detected_level| PG
     SVC -.->|show detected level| Client
     Client -.->|confirm or correct| SVC
@@ -400,7 +400,7 @@ flowchart LR
     PG[(PostgreSQL)]
 
     SVC -->|load project + level| PG
-    PG -->|project summary + confirmed level| SVC
+    PG -.->|project summary + confirmed level| SVC
     Client -->|answer| GW
     GW --> SVC
     SVC -->|first 8-10| QB
