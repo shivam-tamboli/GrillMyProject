@@ -36,7 +36,7 @@ Also part of Phase 1, kept separate so the core stays clear.
 - **Three prompt personalities** based on level: Easy, Medium, Hard
 - **Dynamic difficulty escalation.** If the user scores 7+/10 consistently, AI moves to the next difficulty level for the final questions.
 - **Coaching when stuck.** AI motivates and guides the user, and never lets them feel defeated.
-- **5 lens preparation guide.** Shown in the report only when AI detects unstructured or shallow answers.
+- **Preparation guide.** When the report is generated, if LLM detects answers were unstructured or shallow, the report includes a link to the Preparation Guide page where the user can learn how to structure their answers before their next session.
 - **Session history.** User can revisit all past interview sessions.
 - **Voice input.** User can speak their answers during the interview. The browser converts speech to text using the Web Speech API before sending to the backend. The backend receives plain text regardless of whether the user typed or spoke.
 
@@ -222,8 +222,7 @@ Response:
   "per_question_scores": [],
   "strong_areas": "string",
   "weak_areas": "string",
-  "answer_structure_feedback": "string",
-  "show_preparation_guide": false
+  "answer_structure_feedback": "string"
 }
 ```
 
@@ -551,7 +550,7 @@ New problem: user still waits 3 to 8 seconds after every answer. LLM generates t
 
 Keep the same per question scoring from Approach 2. But instead of waiting for the full LLM response to finish before sending it — stream it word by word to the frontend as it is being generated.
 
-This works using SSE — Server Sent Events. SSE is a one way connection where the server pushes data to the client continuously as it becomes available. The moment LLM starts generating — the first words of the next question start appearing on the user's screen. The full question builds up word by word in real time, exactly like how ChatGPT responds.
+This works using SSE — Server Sent Events. SSE is a one way connection where the server pushes data to the client continuously as it becomes available. Once the LLM call returns, the answer and score are saved to PostgreSQL first. When the save is confirmed, the next question is streamed to the client token by token via SSE. The user sees the question appearing word by word. The experience feels near instant but no question is ever served before the previous answer is safely stored.
 
 The LLM call returns score, feedback and the next question together. The answer and score are saved to PostgreSQL first. Once the save is confirmed — which takes milliseconds — the next question is streamed to the client via SSE. The user sees the question appearing word by word almost instantly. The blank screen is gone and no data is ever lost.
 
@@ -573,7 +572,7 @@ flowchart LR
     SVC -.->|SSE stream| Client
 ```
 
-LLM starts generating immediately. Tokens are streamed to the client as they are produced. User sees the next question appearing word by word. No blank screen. No waiting.
+Answer is saved to PostgreSQL first. Once confirmed, the next question streams to the client word by word via SSE. Near instant but never at the cost of data loss.
 
 ---
 
