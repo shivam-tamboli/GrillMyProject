@@ -283,8 +283,8 @@ Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and 
 **Diagram**
 
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
-flowchart TD
+%%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
+flowchart LR
     Client([Client])
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>Normalizer<br/>↓<br/>Extractor<br/>↓<br/>LLM Context Builder"]
@@ -294,7 +294,7 @@ flowchart TD
     Client --> GW
     GW --> SVC
     SVC --> PG
-    SVC -->|"GitHub URL only"| GH
+    SVC -->|"GitHub URL"| GH
 ```
 
 ### 2. Resume Scan and Level Detection
@@ -328,8 +328,8 @@ Solves Approach 2: the user validates what the LLM detected. Human confirmation 
 **Diagram**
 
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
-flowchart TD
+%%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
+flowchart LR
     Client([Client])
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Extract resume text<br/>• Call LLM"]
@@ -339,7 +339,7 @@ flowchart TD
     Client -->|"upload resume"| GW
     GW --> SVC
     SVC -->|"resume text"| LLM
-    SVC -->|"save confirmed level"| PG
+    SVC -->|"save level"| PG
 ```
 
 ### 3. Live Interview Session
@@ -373,8 +373,8 @@ Solves Approach 2: the question bank saves cost. The LLM is only used where it a
 **Diagram**
 
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
-flowchart TD
+%%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
+flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score tracking<br/>• Difficulty upgrade"]
@@ -385,10 +385,10 @@ flowchart TD
 
     Client -->|answer| GW
     GW --> SVC
-    SVC -->|first 8-10 questions| QB
-    SVC -->|after bank exhausted| LLM
-    SVC -->|update conversation history| RD
-    SVC -->|save question + answer + score| PG
+    SVC -->|first 8-10| QB
+    SVC -->|bank exhausted| LLM
+    SVC -->|update history| RD
+    SVC -->|save answers, scores| PG
 ```
 
 Difficulty upgrades automatically when score is consistently 7+ out of 10.
@@ -424,8 +424,8 @@ Solves Approach 2: not just scores but an explanation of what was wrong and how 
 **Diagram**
 
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
-flowchart TD
+%%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
+flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Reads session data<br/>• Generates report<br/>• Checks preparation guide flag"]
@@ -434,8 +434,8 @@ flowchart TD
 
     Client -->|session ends| GW
     GW --> SVC
-    SVC -->|read all questions + answers + scores| PG
-    SVC -->|summarize into report| LLM
+    SVC -->|read session| PG
+    SVC -->|summarize report| LLM
     SVC -->|save report| PG
 ```
 
