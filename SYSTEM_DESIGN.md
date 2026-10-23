@@ -544,3 +544,46 @@ flowchart LR
 ```
 
 LLM starts generating immediately. Tokens are streamed to the client as they are produced. User sees the next question appearing word by word. No blank screen. No waiting.
+
+---
+
+### Deep Dive 2 — Consistency
+
+**Problem**
+
+During a live interview, two things must happen after every answer — the answer and score must be saved to the database, and the next question must be sent to the user. If these two things happen at the same time and the save fails, the user already sees the next question on screen but the previous answer is lost forever. At the end of the interview the report is incomplete. The user gets a wrong picture of their performance. This is a consistency problem — the system moved forward before it was safe to do so.
+
+**Approach 1 — Save and stream in parallel**
+
+Save the answer to the database and send the next question to the user at the same time.
+
+Problem: if the save fails, the user has already moved to the next question. There is no way to recover the lost answer. The report at the end will be missing data and the scores will be wrong.
+
+**Approach 2 — Save first, then stream (Final)**
+
+Save the answer and score to PostgreSQL first. Wait for a confirmed successful save. Only then stream the next question to the user via SSE.
+
+If the save fails, the system retries the save before doing anything else. The next question is never sent until the current answer is safely stored. The user may wait a fraction of a second longer, but no answer is ever lost.
+
+This follows the Write Before Read pattern — never serve the next state until the current state is durably saved.
+
+This also enables session recovery. If the user loses internet, closes the browser, or the server crashes mid interview — when they come back, the system knows exactly which question they were on. Every answer up to that point is saved. The session can resume from where it stopped.
+
+**Diagram**
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
+flowchart LR
+    Client(Client)
+    SVC["<b>Service Layer</b><br/>• Receive answer<br/>• Save to database first<br/>• Only then stream next question"]
+    PG[(PostgreSQL)]
+    LLM["LLM<br/>external"]
+
+    Client -->|answer| SVC
+    SVC -->|save answer + score| PG
+    PG -.->|save confirmed| SVC
+    SVC -->|generate next question| LLM
+    SVC -.->|SSE stream next question| Client
+```
+
+Answer and score are saved to PostgreSQL before the next question is streamed to the user. If the save fails, the system retries. The next question is never served until the current answer is safely stored. If the user drops off mid session, the session can be resumed from the last saved question.
