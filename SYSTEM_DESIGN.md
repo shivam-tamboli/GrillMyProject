@@ -286,16 +286,26 @@ Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and 
 %%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
 flowchart LR
     Client([Client])
+    README[README Upload]
+    GHURL[GitHub URL]
+    PASTE[Paste Code]
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>Normalizer<br/>↓<br/>Extractor<br/>↓<br/>LLM Context Builder"]
     GH["GitHub API<br/>(external)"]
     PG[(PostgreSQL)]
 
-    Client --> GW
+    Client --> README
+    Client --> GHURL
+    Client --> PASTE
+    README --> GW
+    GHURL --> GW
+    PASTE --> GW
     GW --> SVC
     SVC --> PG
-    SVC -->|"GitHub URL"| GH
+    SVC -->|"token + repo url"| GH
 ```
+
+For GitHub input, repo files are fetched before normalization. For README upload and pasted code, content goes directly to the Normalizer.
 
 ### 2. Resume Scan and Level Detection
 
