@@ -586,3 +586,57 @@ flowchart LR
 ```
 
 Answer and score are saved to PostgreSQL before the next question is streamed to the user. If the save fails, the system retries. The next question is never served until the current answer is safely stored. If the user drops off mid session, the session can be resumed from the last saved question.
+
+---
+
+### Deep Dive 3 — Security
+
+**Problem**
+
+When a user connects their GitHub repository, they provide a personal access token. This token gives whoever holds it full access to that user's private repositories. If we store this token as plain text in our database and the database is ever breached, every user's private repositories are exposed. This is the most sensitive data in our system and needs to be handled carefully at every step — storage, usage, and deletion.
+
+**Approach 1 — Store token as plain text**
+
+Save the GitHub token directly to PostgreSQL as a plain text string.
+
+Problem: if the database is breached, attacker gets every user's token immediately. They can access all private repositories. No extra step needed. Complete exposure.
+
+**Approach 2 — Encrypt token before storing**
+
+Encrypt the token using AES-256 before saving to PostgreSQL. Store the decryption key in environment variables — never in the database, never in the code.
+
+Solves Approach 1: even if the database is breached, attacker only gets encrypted gibberish. Without the decryption key it is useless.
+
+New problem: when we actually use the token to call the GitHub API, we have to decrypt it first. At that moment the token exists in server memory as plain text. If an attacker can read server memory, or if a developer accidentally logs request data, the token is exposed.
+
+**Approach 3 — Encrypt + minimize exposure time (Final)**
+
+Encrypt the token with AES-256 before storing. Decrypt only at the exact moment the GitHub API call is made. Use it immediately and discard from memory as fast as possible. Never log the token anywhere in the system — not in error logs, not in request logs, not in debug output.
+
+The token stays in the database for future sessions so the user does not have to generate a new token every time they come back. This is intentional — forcing users to re-enter tokens on every visit is bad experience and they would stop using the platform. Keeping it encrypted long term is the right tradeoff.
+
+When the user deletes their project or account, the token is deleted from the database immediately. No orphaned sensitive data is left behind.
+
+This approach protects against three attack vectors:
+
+- Database breach: encrypted token is useless without the decryption key
+- Memory exposure: token lives in memory for milliseconds only during the API call
+- Log exposure: token is never written to any log file anywhere in the system
+
+**Diagram**
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
+flowchart LR
+    Client(Client)
+    SVC["<b>Service Layer</b><br/>• Encrypt token before save<br/>• Decrypt only for API call<br/>• Never log token"]
+    PG[(PostgreSQL)]
+    GH["GitHub API"]
+
+    Client -->|token + repo url| SVC
+    SVC -->|encrypted token| PG
+    SVC -->|decrypt + call API| GH
+    GH -.->|repo files| SVC
+```
+
+Token is encrypted with AES-256 before storing. Decryption key lives in environment variables only — never in the database or the code. Token is decrypted only for the GitHub API call and discarded from memory immediately after. Token is deleted from the database when the user removes their project or account.
