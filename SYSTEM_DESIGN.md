@@ -344,6 +344,59 @@ flowchart LR
     SVC -->|"save confirmed level"| PG
 ```
 
+### 3. Live Interview Session
+
+**Problem**
+
+Once the interview starts, the system needs to ask the right questions at the right difficulty, score answers in real time, and adjust difficulty based on how the user is performing, all in one seamless session.
+
+**Approach 1: Fixed question list**
+
+We prepare a list of questions beforehand. Every user gets the same questions in the same order. No matter how well or badly they answer, the next question does not change.
+
+Problem: a user who answers everything perfectly gets the same easy questions as someone struggling. Strong users get bored. Weak users never get help. It feels nothing like a real interview.
+
+**Approach 2: LLM generates every question**
+
+LLM reads the project and creates every question fresh based on the previous answer. No pre-written questions at all.
+
+Solves Approach 1: questions are now specific to the user and their answers.
+
+New problem: the LLM has no structure or difficulty control. Sometimes it asks too hard, sometimes too easy, with no consistency. Every single question costs an API call, which is expensive with no savings.
+
+**Approach 3: Question bank + LLM + automatic difficulty upgrade (final)**
+
+The first 8-10 questions come from the question bank: generic openers and technology specific questions. The LLM takes over after that for deep project specific questions. Score is tracked after every answer. If the user is consistently scoring well, difficulty automatically upgrades to the next level.
+
+Solves Approach 1: difficulty adapts based on how the user performs.
+
+Solves Approach 2: the question bank saves cost. The LLM is only used where it adds real value. Difficulty is controlled and structured.
+
+**Diagram**
+
+```mermaid
+flowchart LR
+    Client([Client])
+    GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
+    SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score tracking<br/>• Difficulty upgrade"]
+    QB["Question Bank<br/>(first 8-10 questions)"]
+    LLM["LLM<br/>(external)"]
+    RD[(Redis)]
+    PG[(PostgreSQL)]
+
+    Client -->|"answer"| GW
+    GW --> SVC
+    SVC -->|"next question"| Client
+    SVC -->|"first 8-10 only"| QB
+    QB -->|"question"| SVC
+    SVC -->|"after bank exhausted"| LLM
+    LLM -->|"question, score, feedback"| SVC
+    SVC -->|"update session"| RD
+    SVC -->|"save answers, scores"| PG
+```
+
+Difficulty upgrades automatically when the score is consistently 7+ out of 10.
+
 ---
 
 ## 9. Component Breakdown
