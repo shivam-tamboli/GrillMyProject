@@ -72,7 +72,7 @@ The main objects the system stores and works with.
 - id, user_id, raw_text, detected_level (easy/medium/hard), confirmed_level, created_at
 
 **Project**
-- id, user_id, input_type (readme/github/paste), raw_content, extracted_summary, detected_technologies, github_token (encrypted), created_at
+- id, user_id, input_type (readme/github/paste), raw_content, repo_url (nullable, only set when input_type is github), extracted_summary, detected_technologies, github_token (encrypted), created_at
 
 **Session**
 - id, user_id, project_id, difficulty_level, status (ongoing/completed), started_at, ended_at
@@ -81,7 +81,7 @@ The main objects the system stores and works with.
 - id, session_id, role (ai/user), content, question_number, question_id (null for LLM questions), score (out of 10), feedback, created_at
 
 **Report**
-- id, session_id, overall_score, strong_areas, weak_areas, answer_structure_feedback, show_preparation_guide (boolean), created_at
+- id, session_id, overall_score, strong_areas, weak_areas, answer_structure_feedback, created_at
 
 **Question**
 - id, text, type (generic/technology), technology (null for generic), difficulty_level (easy/medium/hard), created_at
@@ -243,6 +243,35 @@ Response:
     }
   ]
 }
+```
+
+### GET /api/session/{session_id}/resume
+Resume a dropped session from the last saved question.
+
+Response:
+```json
+{
+  "session_id": "string",
+  "last_question_number": 7,
+  "last_question": "string",
+  "session_status": "ongoing"
+}
+```
+
+### DELETE /api/project/{project_id}
+Delete a project and its encrypted GitHub token.
+
+Response:
+```json
+{ "deleted": true }
+```
+
+### DELETE /api/user
+Delete the user account and all associated data, including projects, sessions and tokens.
+
+Response:
+```json
+{ "deleted": true }
 ```
 
 ---
@@ -474,20 +503,21 @@ LLM receives all questions, answers and scores from the session. It returns an o
 
 Components used across the HLD diagrams.
 
-- **Client:** the web app the user uses. Built with Next.js.
+- **Client:** the web app the user uses. Built with Next.js. Includes a timer that counts down per question. Uses the Web Speech API to convert spoken answers to text before sending to the backend. Renders SSE token stream word by word as questions arrive.
 - **API Gateway:** single entry point for all requests. Handles rate limiting, authentication, and load balancing before anything reaches the services.
 - **Rate Limiter:** stops a user from sending too many requests in a short time. Prevents abuse and controls API cost.
 - **Authentication:** checks the user is logged in via Google OAuth before letting the request through.
 - **Routing / Load Balancer:** spreads traffic evenly across service instances so no single server gets overloaded.
-- **Service Layer:** the FastAPI backend. Contains all business logic including interview management, sending answers to the LLM for scoring, report generation, and project extraction.
+- **Service Layer:** the FastAPI backend. Contains all business logic including interview management, sending answers to the LLM for scoring, report generation, and project extraction. Handles SSE streaming of LLM responses to the client. Encrypts GitHub tokens before storage and decrypts them only for GitHub API calls. Manages difficulty upgrade logic and coaches the user when they are stuck.
 - **Normalizer:** converts all three project input types (README, GitHub URL, pasted code) into one standard format before extraction.
 - **Extractor:** pulls only the README, file tree, and function signatures from the normalized content. Discards everything else.
 - **LLM Context Builder:** packages extracted content into a structured prompt context ready for the interview session.
 - **GitHub API:** external service called only when the user inputs a GitHub URL. Fetches repo files using the personal token.
 - **LLM:** external AI service used for resume level detection, generating deep dive questions, scoring answers per question, coaching when stuck, and summarizing the final report.
-- **Redis:** stores active session conversation history in memory during a live interview. Much faster than PostgreSQL for frequent reads. Cleared when the session ends.
-- **Question Bank:** stores generic opening questions and technology specific questions. Used for the first 8-10 questions to save LLM API cost.
-- **PostgreSQL:** main database. Stores users, resumes, projects, sessions, messages, and reports permanently.
+- **Redis:** stores active session conversation history in memory during a live interview. Much faster than PostgreSQL for frequent reads. Cleared when the session ends. Also holds the LLM request queue — when concurrent LLM calls exceed the provider rate limit, excess requests wait in this queue instead of failing.
+- **Question Bank:** stores generic opening questions and technology specific questions. Saved in PostgreSQL. Used for the first 8-10 questions of every interview to save LLM API cost and keep opening questions consistent.
+- **PostgreSQL:** main database. Stores users, resumes, projects, sessions, messages, and reports permanently. Also stores the question bank — generic opening questions and technology specific questions used for the first 8-10 questions of every session.
+- **Preparation Guide:** a static frontend page that teaches users how to structure their project answers. Covers frameworks like the 5 lens method — why you chose the tech, pros, cons, scaling, and breaking points. Linked from the report when LLM detects answers were unstructured or shallow.
 
 ---
 
@@ -523,7 +553,7 @@ Keep the same per question scoring from Approach 2. But instead of waiting for t
 
 This works using SSE — Server Sent Events. SSE is a one way connection where the server pushes data to the client continuously as it becomes available. The moment LLM starts generating — the first words of the next question start appearing on the user's screen. The full question builds up word by word in real time, exactly like how ChatGPT responds.
 
-The total processing time is the same. But the user sees something immediately. The blank screen is gone. The interview feels like a natural conversation.
+The LLM call returns score, feedback and the next question together. The answer and score are saved to PostgreSQL first. Once the save is confirmed — which takes milliseconds — the next question is streamed to the client via SSE. The user sees the question appearing word by word almost instantly. The blank screen is gone and no data is ever lost.
 
 SSE is chosen over WebSocket because our use case is one directional — server streams to client. WebSocket is two way and adds unnecessary complexity for a streaming only use case. SSE is simpler, lighter, natively supported in all browsers, and purpose built for this pattern.
 
@@ -613,7 +643,7 @@ New problem: when we actually use the token to call the GitHub API, we have to d
 
 Encrypt the token with AES-256 before storing. Decrypt only at the exact moment the GitHub API call is made. Use it immediately and discard from memory as fast as possible. Never log the token anywhere in the system — not in error logs, not in request logs, not in debug output.
 
-The token stays in the database for future sessions so the user does not have to generate a new token every time they come back. This is intentional — forcing users to re-enter tokens on every visit is bad experience and they would stop using the platform. Keeping it encrypted long term is the right tradeoff.
+The token stays in the database for future sessions so the user does not have to generate a new token every time they come back. This is intentional — forcing users to re-enter tokens on every visit is bad experience and they would stop using the platform. Keeping it encrypted long term is the right tradeoff. The token is reused when the user starts a new interview session on the same project, so the repo can be re-fetched without asking the user to generate a new token each time.
 
 When the user deletes their project or account, the token is deleted from the database immediately. No orphaned sensitive data is left behind.
 
