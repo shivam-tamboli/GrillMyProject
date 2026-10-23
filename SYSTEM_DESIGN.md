@@ -38,6 +38,7 @@ Also part of Phase 1, kept separate so the core stays clear.
 - **Coaching when stuck.** AI motivates and guides the user, and never lets them feel defeated.
 - **5 lens preparation guide.** Shown in the report only when AI detects unstructured or shallow answers.
 - **Session history.** User can revisit all past interview sessions.
+- **Voice input.** User can speak their answers during the interview. The browser converts speech to text using the Web Speech API before sending to the backend. The backend receives plain text regardless of whether the user typed or spoke.
 
 ---
 
@@ -392,7 +393,7 @@ Solves Approach 2: the question bank saves cost. The LLM is only used where it a
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
 flowchart LR
-    Client(Client)
+    Client("<b>Client</b><br/>• Web Speech API (speech to text)")
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score every answer via LLM<br/>• Difficulty upgrade<br/>• Coach when stuck"]
     QB["Question Bank<br/>(stored in PostgreSQL)"]
@@ -402,7 +403,7 @@ flowchart LR
 
     SVC -->|load project + level| PG
     PG -.->|project summary + confirmed level| SVC
-    Client -->|answer| GW
+    Client -->|"answer (typed or spoken)"| GW
     GW --> SVC
     SVC -->|first 8-10| QB
     SVC -->|score every answer| LLM
