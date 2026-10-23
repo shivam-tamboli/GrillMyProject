@@ -381,7 +381,7 @@ New problem: the LLM has no structure or difficulty control. Sometimes it asks t
 
 **Approach 3: Question bank + LLM + automatic difficulty upgrade (final)**
 
-The first 8-10 questions come from the question bank: generic openers and technology specific questions. The LLM takes over after that for deep project specific questions. Score is tracked after every answer. If the user is consistently scoring well, difficulty automatically upgrades to the next level.
+The first 8-10 questions come from the question bank: generic openers and technology specific questions. The LLM takes over after that for deep project specific questions. Every answer, including answers to bank questions, is scored only by the LLM, and the score is tracked after every answer. If the user is consistently scoring well, difficulty automatically upgrades to the next level.
 
 Solves Approach 1: difficulty adapts based on how the user performs.
 
@@ -405,7 +405,8 @@ flowchart LR
     Client -->|answer| GW
     GW --> SVC
     SVC -->|first 8-10| QB
-    SVC -->|bank exhausted| LLM
+    SVC -->|score every answer| LLM
+    SVC -->|deep questions after bank| LLM
     SVC -->|update history| RD
     SVC -->|save answers, scores| PG
     SVC -.->|next question| Client
@@ -477,7 +478,7 @@ Components used across the HLD diagrams.
 - **Rate Limiter:** stops a user from sending too many requests in a short time. Prevents abuse and controls API cost.
 - **Authentication:** checks the user is logged in via Google OAuth before letting the request through.
 - **Routing / Load Balancer:** spreads traffic evenly across service instances so no single server gets overloaded.
-- **Service Layer:** the FastAPI backend. Contains all business logic including interview management, scoring, report generation, and project extraction.
+- **Service Layer:** the FastAPI backend. Contains all business logic including interview management, sending answers to the LLM for scoring, report generation, and project extraction.
 - **Normalizer:** converts all three project input types (README, GitHub URL, pasted code) into one standard format before extraction.
 - **Extractor:** pulls only the README, file tree, and function signatures from the normalized content. Discards everything else.
 - **LLM Context Builder:** packages extracted content into a structured prompt context ready for the interview session.
