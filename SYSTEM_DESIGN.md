@@ -575,15 +575,14 @@ This also enables session recovery. If the user loses internet, closes the brows
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
     Client(Client)
-    SVC["<b>Service Layer</b><br/>• Receive answer<br/>• Save to database first<br/>• Only then stream next question"]
+    SVC["<b>Service Layer</b><br/>• Receive answer<br/>• Save first<br/>• Then stream next question"]
     PG[(PostgreSQL)]
     LLM["LLM<br/>external"]
 
     Client -->|answer| SVC
     SVC -->|save answer + score| PG
-    PG -.->|save confirmed| SVC
-    SVC -->|generate next question| LLM
-    SVC -.->|SSE stream next question| Client
+    SVC -->|generate question| LLM
+    SVC -.->|SSE stream| Client
 ```
 
 Answer and score are saved to PostgreSQL before the next question is streamed to the user. If the save fails, the system retries. The next question is never served until the current answer is safely stored. If the user drops off mid session, the session can be resumed from the last saved question.
