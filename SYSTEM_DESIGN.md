@@ -287,7 +287,7 @@ flowchart LR
     Client([Client])
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>Normalizer<br/>↓<br/>Extractor<br/>↓<br/>LLM Context Builder"]
-    GH[("GitHub API<br/>(external)")]
+    GH["GitHub API<br/>(external)"]
     PG[(PostgreSQL)]
 
     Client --> GW
@@ -295,6 +295,53 @@ flowchart LR
     SVC --> PG
     SVC -->|"GitHub URL only"| GH
     GH -->|"repo files"| SVC
+```
+
+### 2. Resume Scan and Level Detection
+
+**Problem**
+
+When a user comes to the platform, we don't know their experience level. Without knowing the level, we cannot calibrate the interview difficulty correctly.
+
+**Approach 1: Manual selection**
+
+User selects their own level: Fresher, Mid, or Senior.
+
+Problem: users lie to themselves. A fresher picks Senior to feel good. The interview is calibrated wrong and the experience breaks down.
+
+**Approach 2: LLM scans resume and decides**
+
+LLM reads the resume and automatically detects the level.
+
+Solves Approach 1: user cannot lie, the system decides.
+
+New problem: the LLM can be wrong. If it misreads experience, the user gets the wrong level with no way to fix it.
+
+**Approach 3: LLM scans resume, user confirms (final)**
+
+LLM reads the resume and returns a detected level. The user sees the result and confirms or corrects it before the interview starts.
+
+Solves Approach 1: no manual bias.
+
+Solves Approach 2: the user validates what the LLM detected. Human confirmation acts as a safety net.
+
+**Diagram**
+
+```mermaid
+flowchart LR
+    Client([Client])
+    GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
+    SVC["<b>Service Layer</b><br/>• Extract resume text<br/>• Call LLM"]
+    LLM["LLM<br/>(external)"]
+    PG[(PostgreSQL)]
+
+    Client -->|"upload resume"| GW
+    GW --> SVC
+    SVC -->|"resume text"| LLM
+    LLM -->|"detected level"| SVC
+    SVC -->|"detected level"| Client
+    Client -->|"confirm / correct"| SVC
+    SVC -->|"save confirmed level"| PG
 ```
 
 ---
