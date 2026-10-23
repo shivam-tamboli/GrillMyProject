@@ -488,3 +488,60 @@ Components used across the HLD diagrams.
 - **Redis:** stores active session conversation history in memory during a live interview. Much faster than PostgreSQL for frequent reads. Cleared when the session ends.
 - **Question Bank:** stores generic opening questions and technology specific questions. Used for the first 8-10 questions to save LLM API cost.
 - **PostgreSQL:** main database. Stores users, resumes, projects, sessions, messages, and reports permanently.
+
+---
+
+## Deep Dives
+
+Deep dives explain how the system handles its hardest problems. Each one covers the specific challenge, the approaches considered, and the final solution chosen.
+
+---
+
+### Deep Dive 1 — Low Latency
+
+**Problem**
+
+Every time a user submits an answer, the system has to do three things before the next question can appear on screen — score the answer, generate feedback, and create the next question. All three happen inside a single LLM call. LLM models are powerful but slow. A single call with full conversation history and project context takes anywhere from 3 to 8 seconds to complete. During that time the user sees nothing. A blank screen in the middle of an interview feels broken. It breaks the flow, kills focus, and makes the platform feel unpolished.
+
+**Approach 1 — Score everything at the end**
+
+Skip scoring during the interview completely. Just ask questions and store answers. At the end, send everything to LLM in one call and score all 25 answers at once.
+
+Problem: if the user closes the tab or loses internet mid session, nothing gets scored and the session is lost. Also, sending 25 questions and answers in one call costs significantly more tokens than scoring one at a time.
+
+**Approach 2 — Score per question, wait for full response**
+
+Score each answer immediately after it is given. One LLM call per question that returns score, feedback and next question together.
+
+Solves Approach 1: no data loss, cost is manageable.
+
+New problem: user still waits 3 to 8 seconds after every answer. LLM generates the full response internally and only sends it when completely done. User stares at a blank screen on every single question. 25 questions means 25 blank screen moments. The interview feels nothing like a real conversation.
+
+**Approach 3 — Stream LLM response via SSE (Final)**
+
+Keep the same per question scoring from Approach 2. But instead of waiting for the full LLM response to finish before sending it — stream it word by word to the frontend as it is being generated.
+
+This works using SSE — Server Sent Events. SSE is a one way connection where the server pushes data to the client continuously as it becomes available. The moment LLM starts generating — the first words of the next question start appearing on the user's screen. The full question builds up word by word in real time, exactly like how ChatGPT responds.
+
+The total processing time is the same. But the user sees something immediately. The blank screen is gone. The interview feels like a natural conversation.
+
+SSE is chosen over WebSocket because our use case is one directional — server streams to client. WebSocket is two way and adds unnecessary complexity for a streaming only use case. SSE is simpler, lighter, natively supported in all browsers, and purpose built for this pattern.
+
+**Diagram**
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
+flowchart LR
+    Client("<b>Client</b><br/>• Renders tokens in real time")
+    SVC["<b>Service Layer</b><br/>• Receives answer<br/>• Calls LLM<br/>• Streams tokens via SSE"]
+    LLM["LLM<br/>external"]
+    PG[(PostgreSQL)]
+
+    Client -->|answer| SVC
+    SVC -->|score + next question| LLM
+    LLM -.->|tokens stream| SVC
+    SVC -.->|SSE stream| Client
+    SVC -->|save answer + score| PG
+```
+
+LLM starts generating immediately. Tokens are streamed to the client as they are produced. User sees the next question appearing word by word. No blank screen. No waiting.
