@@ -393,12 +393,14 @@ Solves Approach 2: the question bank saves cost. The LLM is only used where it a
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
-    SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score tracking<br/>• Difficulty upgrade"]
-    QB[Question Bank]
+    SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score every answer<br/>• Difficulty upgrade<br/>• Coach when stuck"]
+    QB["Question Bank<br/>(stored in PostgreSQL)"]
     LLM["LLM<br/>external"]
     RD[(Redis)]
     PG[(PostgreSQL)]
 
+    SVC -->|load project + level| PG
+    PG -->|project summary + confirmed level| SVC
     Client -->|answer| GW
     GW --> SVC
     SVC -->|first 8-10| QB
@@ -407,7 +409,7 @@ flowchart LR
     SVC -->|save answers, scores| PG
 ```
 
-Difficulty upgrades automatically when score is consistently 7+ out of 10.
+Question bank handles first 8-10 questions without calling LLM. Every answer is scored immediately after it is given. Difficulty upgrades automatically when score is consistently 7+ out of 10. Session ends after 25 questions or 45 minutes.
 
 ### 4. Report Generation
 
