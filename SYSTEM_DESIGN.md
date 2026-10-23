@@ -302,7 +302,7 @@ flowchart LR
     PASTE --> GW
     GW --> SVC
     SVC --> PG
-    SVC -->|"token + repo url"| GH
+    SVC -->|"GitHub URL only"| GH
     GH -.->|"repo files"| SVC
 ```
 
@@ -394,7 +394,7 @@ Solves Approach 2: the question bank saves cost. The LLM is only used where it a
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
-    SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score every answer<br/>• Difficulty upgrade<br/>• Coach when stuck"]
+    SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Score every answer via LLM<br/>• Difficulty upgrade<br/>• Coach when stuck"]
     QB["Question Bank<br/>(stored in PostgreSQL)"]
     LLM["LLM<br/>external"]
     RD[(Redis)]
@@ -408,9 +408,10 @@ flowchart LR
     SVC -->|bank exhausted| LLM
     SVC -->|update history| RD
     SVC -->|save answers, scores| PG
+    SVC -.->|next question| Client
 ```
 
-Question bank handles first 8-10 questions without calling LLM. Every answer is scored immediately after it is given. Difficulty upgrades automatically when score is consistently 7+ out of 10. Session ends after 25 questions or 45 minutes.
+Question bank handles first 8-10 questions without the LLM writing them. Every answer is scored by the LLM immediately after it is given. Difficulty upgrades automatically when score is consistently 7+ out of 10. Session ends after 25 questions or 45 minutes.
 
 ### 4. Report Generation
 
@@ -456,14 +457,14 @@ flowchart LR
     GW --> SVC
     SVC -->|all questions + answers + scores| PG
     PG -.->|session data| SVC
-    SVC -->|assess + score everything| LLM
+    SVC -->|summarize session into report| LLM
     LLM -.->|overall score + weak areas + feedback| SVC
     SVC -->|save report| PG
     SVC -->|close session, clear Redis| RD
     SVC -.->|report + feedback| Client
 ```
 
-LLM receives all questions, answers and scores from the session. It returns an overall score, weak areas, strong areas, and honest feedback on answer quality. Redis is cleared after the session closes to free memory.
+LLM receives all questions, answers and scores from the session. It returns an overall score, weak areas, strong areas, and honest feedback on answer quality. Redis is cleared after the session closes to free memory. If answers were unstructured or shallow, the report includes a link to the Preparation Guide page where the user can learn how to structure answers before their next session.
 
 ---
 
