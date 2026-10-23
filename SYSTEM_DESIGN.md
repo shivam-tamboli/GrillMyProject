@@ -344,7 +344,6 @@ flowchart LR
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Extract resume text<br/>• Call LLM"]
     LLM["LLM<br/>external"]
-    CONF["User confirms or corrects level"]
     PG[(PostgreSQL)]
 
     Client -->|upload resume| GW
@@ -352,8 +351,9 @@ flowchart LR
     SVC -->|resume text| LLM
     LLM -->|detected level| SVC
     SVC -->|save detected_level| PG
-    SVC -->|show detected level| CONF
-    CONF -->|save confirmed_level| PG
+    SVC -.->|show detected level| Client
+    Client -.->|confirm or correct| SVC
+    SVC -->|save confirmed_level| PG
 ```
 
 detected_level is what LLM found. confirmed_level is what the user validated. If the user corrects the level, confirmed_level is updated. detected_level stays unchanged so we can track LLM accuracy over time.
