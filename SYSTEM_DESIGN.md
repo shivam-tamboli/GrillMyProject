@@ -530,7 +530,7 @@ SSE is chosen over WebSocket because our use case is one directional — server 
 **Diagram**
 
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 60, 'rankSpacing': 100}}}%%
+%%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
     Client("<b>Client</b><br/>• Renders tokens in real time")
     SVC["<b>Service Layer</b><br/>• Receives answer<br/>• Calls LLM<br/>• Streams tokens via SSE"]
