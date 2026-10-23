@@ -283,6 +283,7 @@ Solves Approach 2: context stays focused and cheap, and the LLM stays sharp and 
 **Diagram**
 
 ```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
 flowchart LR
     Client([Client])
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
@@ -328,6 +329,7 @@ Solves Approach 2: the user validates what the LLM detected. Human confirmation 
 **Diagram**
 
 ```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
 flowchart LR
     Client([Client])
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
@@ -428,6 +430,7 @@ Solves Approach 2: not just scores but an explanation of what was wrong and how 
 **Diagram**
 
 ```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 50, 'rankSpacing': 80}}}%%
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
@@ -453,9 +456,9 @@ Preparation guide is shown automatically when LLM detects answers were unstructu
 
 Components used across the HLD diagrams.
 
-- **Client:** the web app the user uses to submit their project.
-- **API Gateway:** single entry point for every request, runs the checks below before anything reaches the services.
-- **Rate Limiter:** stops a user from sending too many requests in a minute.
+- **Client:** the web app the user uses. Built with Next.js.
+- **API Gateway:** single entry point for all requests. Handles rate limiting, authentication, and load balancing before anything reaches the services.
+- **Rate Limiter:** stops a user from sending too many requests in a short time. Prevents abuse and controls API cost.
 - **Authentication:** checks who the user is before letting the request through.
 - **Routing / Load Balancer:** sends the request to the right service and spreads traffic across instances.
 - **Service Layer:** the backend logic that turns raw project input into interview context.
