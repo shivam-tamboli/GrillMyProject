@@ -236,7 +236,7 @@ When the 45 minute timer ends or the user ends the session early, the server tri
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
     Client(Client)
-    SSO["GitHub SSO<br/>login + repo access"]
+    SSO["GitHub SSO"]
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Interview logic<br/>• Scoring<br/>• Report generation"]
     LLM["LLM<br/>external"]
@@ -543,11 +543,11 @@ Cons:
 
 **GitHub SSO**
 
-Why we chose it: Our users are developers with GitHub accounts, and the same login gives us repo access when they want it.
+Why we chose it: Our users are developers with GitHub accounts, and login is a single click. Login uses profile and email scope only. Repo access is a separate OAuth flow triggered only when the user connects their repository.
 
 Pros:
 - Target users already have an account, so signup is one click.
-- One OAuth flow covers both login and optional repo access.
+- Two scoped OAuth flows — minimal permissions at login, repo access only when user needs it.
 - No passwords for us to store.
 
 Cons:
