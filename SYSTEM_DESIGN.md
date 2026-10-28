@@ -206,6 +206,32 @@ Response:
 
 ## 6. High Level Design
 
+### 1. User Authentication and Onboarding
+
+We use GitHub SSO for authentication. When a user lands on the platform, they sign in with their GitHub account in one click — no separate password or account creation needed. This works because our users are developers who already have GitHub accounts. The same OAuth token from login is later used to access their private repositories, removing the need for a separate personal token generation step. After login, the user uploads their resume as a PDF.
+
+---
+
+### 2. Resume Scan and Level Detection
+
+When the user uploads their resume, the system extracts the text and sends it to LLM. LLM reads the resume and detects the user's experience level — Easy, Medium, or Hard — based on their projects, tech stack, and experience. The detected level is shown to the user before the interview starts. The user can confirm it or correct it if wrong. This confirmed level is stored in the session and used to calibrate question difficulty throughout the interview. We chose LLM for this because resume formats vary widely and rule based parsing would miss too much context.
+
+---
+
+### 3. Live Interview Session
+
+The interview runs over a persistent WebSocket connection that stays open for the full 45 minutes. WebSocket is chosen over HTTP because the interview is bidirectional — the client sends answers and the server sends questions continuously throughout the session. The session runs in three time based phases: resume questions from 0 to 15 minutes, behavioral questions from 15 to 25 minutes, and project deep dive from 25 to 45 minutes. On every answer, LLM scores it, generates feedback, and creates the next question in one call. The score and answer are saved to PostgreSQL before the next question is sent. Active session history is cached in Redis so LLM always has full conversation context without hitting PostgreSQL on every call.
+
+---
+
+### 4. Report Generation
+
+When the 45 minute timer ends or the user ends the session early, the server triggers report generation. The Service Layer reads all saved questions, answers, and scores from PostgreSQL and sends them to LLM. LLM summarizes everything into a full report — overall score, strong areas, weak areas, and honest feedback on answer quality. The report is saved to PostgreSQL and shown to the user. If LLM detects answers were unstructured or shallow, the report includes a link to the Preparation Guide page.
+
+---
+
+### Final System Diagram
+
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
