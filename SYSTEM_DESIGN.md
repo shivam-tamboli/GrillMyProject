@@ -208,7 +208,7 @@ Response:
 
 ### 1. User Authentication and Onboarding
 
-We use GitHub SSO for authentication. When a user lands on the platform, they sign in with their GitHub account in one click — no separate password or account creation needed. This works because our users are developers who already have GitHub accounts. The same OAuth token from login is later used to access their private repositories, removing the need for a separate personal token generation step. After login, the user uploads their resume as a PDF.
+We use GitHub SSO for authentication. When a user lands on the platform, they sign in with their GitHub account in one click — no separate password or account creation needed. This works because our users are developers who already have GitHub accounts. The same OAuth token from login is later used to access their private repositories, removing the need for a separate personal token generation step. During GitHub login, we request repo access scope so the same token can be used to fetch private repositories. This token is stored encrypted in PostgreSQL for future sessions so the user does not need to reconnect GitHub every time they return. After login, the user uploads their resume as a PDF.
 
 ---
 
