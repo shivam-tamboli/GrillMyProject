@@ -264,6 +264,8 @@ flowchart LR
 
 GitHub repo connection is optional. Resume based interview works without it. When connected, LLM uses repo content for deeper project specific questions after resume and behavioral questions are complete.
 
+GitHub OAuth runs in two separate flows. The login flow requests profile and email scope only. The repo connection flow requests repo scope and is triggered only when the user chooses to connect their repository. Users who want resume only interviews never need to grant repo access.
+
 ---
 
 ## 7. Deep Dives
@@ -336,7 +338,7 @@ flowchart LR
 
 **Problem**
 
-The GitHub token gives access to the user's repositories. If we store it as plain text and the database is breached, the attacker gets access to every user's repos.
+The GitHub token gives access to the user's repositories. If we store it as plain text and the database is breached, the attacker gets access to every user's repos. This token comes from a second GitHub OAuth flow triggered only when the user connects their repo. It is separate from the login token and stored encrypted in PostgreSQL.
 
 **Solution**
 
