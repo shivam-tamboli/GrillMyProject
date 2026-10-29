@@ -15,6 +15,13 @@ Every change follows the PR workflow, in this order:
 
 If the PR has merge conflicts, resolve them before merging. The PR body must include `Closes #<issue>` so the issue closes when it merges.
 
+## How to work with me
+
+- Before creating any GitHub issue, show me a draft first and wait for my approval before submitting.
+- After completing each task or file, pause and wait for my review before moving to the next step. Do not continue automatically.
+- After each step, explain in 2-3 simple lines what you just built, why we needed it, and how it connects to the rest of the project.
+- Whenever you add a new library, tool, or concept, explain it in 2-3 simple lines before implementing. What is it, why we need it, what happens if we skip it.
+
 ## Issues
 
 - Write issues in clear, simple English. Keep them descriptive.
