@@ -16,7 +16,7 @@
 
 1. User signs up with GitHub SSO and uploads their resume.
 2. System scans the resume and detects the experience level (Easy / Medium / Hard). User confirms or corrects it.
-3. AI runs a live 45 minute interview: resume questions first, then behavioral questions, then a project deep dive using the user's GitHub repo.
+3. AI runs a live 45 minute interview: resume questions first, then behavioral questions, then a project deep dive, using the user's GitHub repo when it is connected.
 4. Every answer is scored by the LLM in real time.
 5. At the end, the system generates a report with overall score, strong areas, weak areas and honest feedback.
 
@@ -85,14 +85,14 @@ Question Bank is not a database entity. It is a static set of pre-written questi
 Login happens through GitHub SSO. The callback endpoint below completes the login. All other endpoints require a logged in user.
 
 ### GET /api/auth/github/callback
-GitHub OAuth callback. Exchanges code for access token, creates or retrieves user, returns session JWT.
+GitHub OAuth callback. Exchanges code for access token, creates or retrieves user, and sets the session JWT as an HTTP only cookie.
 
 Response:
 ```json
-{ "token": "string", "user_id": "string", "is_new_user": true }
+{ "user_id": "string", "is_new_user": true }
 ```
 
-JWT is stored in an HTTP only cookie on the client side. When establishing the WebSocket connection, the JWT is passed in the handshake header for authentication. The server validates it before allowing the interview session to start.
+The JWT lives only in an HTTP only cookie, so it is not in the response body. Browsers send the cookie automatically when the WebSocket connection is opened. The server validates it during the handshake, before allowing the interview session to start.
 
 ### POST /api/resume/upload
 Upload a resume PDF, scan it and detect the level.
@@ -354,11 +354,13 @@ The token is encrypted with AES-256 before it is stored. The decryption key live
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
     Client(Client)
+    GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
     SVC["<b>Service Layer</b><br/>• Encrypt before save<br/>• Decrypt for API call only<br/>• Never log token"]
     PG[(PostgreSQL)]
     GH["GitHub API"]
 
-    Client -->|connect repo| SVC
+    Client -->|connect repo| GW
+    GW -->|proxy| SVC
     SVC -->|encrypted token| PG
     SVC -->|decrypt, call, discard| GH
 ```
