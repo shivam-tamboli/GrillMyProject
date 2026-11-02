@@ -57,13 +57,13 @@ The 45 minute timer runs server side. When time runs out, the server automatical
 ## 4. Core Entities
 
 **User**
-- id, name, email, github_oauth_id, created_at
+- id, name, email, github_oauth_id, github_token (encrypted, nullable, set only when the user connects a repo), created_at
 
 **Resume**
 - id, user_id, raw_text, detected_level, confirmed_level, created_at
 
 **Project** (optional, only if the user connects GitHub)
-- id, user_id, repo_url, github_token (encrypted), extracted_summary, created_at
+- id, user_id, repo_url, extracted_summary, created_at
 
 **Session**
 - id, user_id, resume_id, project_id (nullable), confirmed_level, status (ongoing/completed/dropped), current_question_number, overall_score, started_at, ended_at
@@ -387,6 +387,7 @@ All tables are in PostgreSQL. `id` columns are UUIDs.
 | name | text | |
 | email | text | unique |
 | github_oauth_id | text | unique |
+| github_token | bytea | AES-256 encrypted, nullable, set when the user connects a repo |
 | created_at | timestamptz | |
 
 **resumes**
@@ -407,7 +408,6 @@ All tables are in PostgreSQL. `id` columns are UUIDs.
 | id | uuid | primary key |
 | user_id | uuid | FK to users.id |
 | repo_url | text | |
-| github_token | bytea | AES-256 encrypted |
 | extracted_summary | text | README, file tree, function signatures |
 | created_at | timestamptz | |
 
