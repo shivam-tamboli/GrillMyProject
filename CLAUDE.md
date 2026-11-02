@@ -26,6 +26,7 @@ If the PR has merge conflicts, resolve them before merging. The PR body must inc
 
 - Write issues like a developer filing a ticket for a teammate. Plain English, short sentences, specific details: real commands, file names, what is missing or broken today.
 - Write them the way a developer would. Nothing that reads like AI wrote it.
+- Every section must be specific and honest. No vague or filler sentences anywhere in the issue. Show me the draft first. I will read every section and correct anything that is wrong or vague before approving.
 - Keep them short. Why is 2-3 lines. Tasks are terse bullets. Done When only lists checks someone can actually run.
 - Always assign the issue to me (`--assignee @me`).
 - Always use labels. If a label does not exist, create it first.
