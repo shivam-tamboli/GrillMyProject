@@ -94,6 +94,22 @@ Response:
 
 The JWT lives only in an HTTP only cookie, so it is not in the response body. Browsers send the cookie automatically when the WebSocket connection is opened. The server validates it during the handshake, before allowing the interview session to start.
 
+### GET /api/auth/me
+Get the logged in user. Returns 401 if the cookie is missing, invalid or expired.
+
+Response:
+```json
+{ "id": "string", "name": "string", "email": "string" }
+```
+
+### POST /api/auth/logout
+Log out by clearing the JWT cookie.
+
+Response:
+```json
+{ "success": true }
+```
+
 ### POST /api/resume/upload
 Upload a resume PDF, scan it and detect the level.
 

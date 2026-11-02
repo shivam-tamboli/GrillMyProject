@@ -4,7 +4,9 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.core.deps import get_current_user
 from app.db.database import get_db
+from app.models import User
 from app.services import auth as auth_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -43,3 +45,14 @@ def github_callback(
     response.set_cookie("access_token", token, max_age=max_age, httponly=True, samesite="lax")
     response.delete_cookie("oauth_state")
     return {"user_id": str(user.id), "is_new_user": is_new_user}
+
+
+@router.get("/me")
+def me(user: User = Depends(get_current_user)):
+    return {"id": str(user.id), "name": user.name, "email": user.email}
+
+
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie("access_token")
+    return {"success": True}
