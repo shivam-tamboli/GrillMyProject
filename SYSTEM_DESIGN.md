@@ -541,14 +541,15 @@ Cons:
 - SSE would have been simpler but WebSocket made Redis necessary for session state.
 - Two stores means cache and database can disagree if we are careless.
 
-**LLM API (Claude / OpenAI)**
+**LLM API (OpenAI)**
 
-Why we chose it: Scoring answers and writing follow up questions needs a strong language model, and building one is not realistic.
+Why we chose it: Scoring answers and writing follow up questions needs a strong language model, and building one is not realistic. We use the OpenAI API.
 
 Generic opening questions come from a static question bank to save LLM API cost. LLM generates all other questions dynamically.
 
 Pros:
 - Streaming support, which we need for low latency.
+- Structured JSON output, which fits our single call that returns score, feedback and the next question.
 - Strong at reading resumes, code summaries and open ended answers.
 - No model hosting to manage.
 
@@ -556,7 +557,7 @@ Cons:
 - Cost grows with every question, since each call includes conversation history.
 - 3 to 8 second response time, which streaming hides but does not remove.
 - Scores are not perfectly consistent. The same answer can get slightly different scores.
-- Provider rate limits and outages are outside our control.
+- Provider rate limits and outages are outside our control, and we depend on a single provider.
 - User resume and repo content is sent to a third party.
 
 **GitHub SSO**
