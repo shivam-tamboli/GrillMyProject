@@ -9,6 +9,8 @@ cd backend
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # set DATABASE_URL
+docker compose up -d   # run from repo root, starts Postgres
+alembic upgrade head   # creates the tables
 uvicorn app.main:app --reload
 ```
 
@@ -22,3 +24,14 @@ Check it works: `GET http://localhost:8000/health`
 - `app/services` - business logic
 - `app/core` - config
 - `app/db` - engine, session, Base
+
+## Migrations
+
+After changing a model:
+
+```
+alembic revision --autogenerate -m "short message"
+alembic upgrade head
+```
+
+Check the generated file in `alembic/versions/` before applying it.
