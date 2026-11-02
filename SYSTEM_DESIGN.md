@@ -543,13 +543,15 @@ Cons:
 
 **LLM API (OpenAI)**
 
-Why we chose it: Scoring answers and writing follow up questions needs a strong language model, and building one is not realistic. We use the OpenAI API.
+Why we chose it: Scoring answers and writing follow up questions needs a strong language model, and building one is not realistic. We use OpenAI because it is cheap enough for an MVP, returns reliable JSON for scoring, and has an SDK most developers already know. We start with GPT-4o-mini to keep the cost per session low. A well known provider also means fewer surprises when integrating.
 
 Generic opening questions come from a static question bank to save LLM API cost. LLM generates all other questions dynamically.
 
 Pros:
 - Streaming support, which we need for low latency.
-- Structured JSON output, which fits our single call that returns score, feedback and the next question.
+- Reliable structured JSON output, which fits our single call that returns score, feedback and the next question.
+- Low cost with GPT-4o-mini, so a 45 minute session stays cheap during the MVP.
+- Well known SDK with a large community, so most problems already have an answer online.
 - Strong at reading resumes, code summaries and open ended answers.
 - No model hosting to manage.
 
