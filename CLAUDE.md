@@ -24,7 +24,8 @@ If the PR has merge conflicts, resolve them before merging. The PR body must inc
 
 ## Issues
 
-- Write issues in clear, simple English. Keep them descriptive.
+- Write issues like a developer filing a ticket for a teammate. Plain English, short sentences, specific details: real commands, file names, what is missing or broken today.
+- Keep them short. Why is 2-3 lines. Tasks are terse bullets. Done When only lists checks someone can actually run.
 - Always assign the issue to me (`--assignee @me`).
 - Always use labels. If a label does not exist, create it first.
 - Use this format:
@@ -36,6 +37,16 @@ If the PR has merge conflicts, resolve them before merging. The PR body must inc
 ## Done When
 ## Out of Scope
 ```
+
+## Pull requests
+
+- Keep the description short: `Closes #<issue>`, one or two lines on what changed, and how it was tested.
+- Do not copy the task list from the issue.
+- Merge with a merge commit (`gh pr merge --merge --delete-branch`), then pull main.
+
+## Words to avoid
+
+In issues, PRs, commits and docs, do not use: robust, leverage, seamlessly, cutting-edge, comprehensive, ensure, streamline.
 
 ## Branches
 
