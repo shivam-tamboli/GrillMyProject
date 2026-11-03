@@ -78,7 +78,7 @@ No answer rule. If the user has not started speaking 45 seconds after a question
 - id, user_id, resume_id, project_id (nullable), current_level, status (ongoing/completed/dropped), current_question_number, overall_score, started_at, ended_at
 
 **Message**
-- id, session_id, role (ai/user), content, question_number, question_type (resume/behavioral/technical), score (out of 10), feedback, created_at
+- id, session_id, role (ai/user), content, question_number, question_type (resume/behavioral/technical), bank_question_id (nullable, set when the question came from the question bank), score (out of 10), feedback, created_at
 
 **Report**
 - id, session_id, overall_score, strong_areas, weak_areas, answer_structure_feedback, created_at
@@ -499,6 +499,7 @@ All tables are in PostgreSQL. `id` columns are UUIDs.
 | content | text | |
 | question_number | int | |
 | question_type | text | resume / behavioral / technical |
+| bank_question_id | text | nullable. Id of the question bank question, like `easy-03`. Set only on AI messages that came from the bank. The bank is a file in the codebase, so this is not a foreign key |
 | score | int | 0 to 10, only on user messages |
 | feedback | text | only on user messages |
 | created_at | timestamptz | |
@@ -520,6 +521,8 @@ All tables are in PostgreSQL. `id` columns are UUIDs.
 - A user has many resumes, projects and sessions.
 - A session belongs to one user and one resume, and optionally one project.
 - A session has many messages and exactly one report.
+
+**Question bank lookup.** To find the bank questions a user has already seen, join `messages` to `sessions` on `session_id` and filter on `sessions.user_id` and `messages.bank_question_id IS NOT NULL`. There is no extra index for this. It scans one user's messages, which is small at MVP size.
 
 **Indexes:** `messages(session_id, question_number)` for loading a session in order, and `sessions(user_id, started_at)` for session history.
 
