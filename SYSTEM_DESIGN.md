@@ -325,27 +325,29 @@ An LLM call with the full conversation takes 3 to 8 seconds. If the user submits
 
 **Solution**
 
-The WebSocket stays open for the whole session. The LLM response streams through it token by token, so the user sees the next question appear word by word. The answer is saved to PostgreSQL first, then the next question starts streaming.
+The WebSocket stays open for the whole session. Each answer takes two LLM calls. The first call scores the answer. The server saves the answer and score to PostgreSQL and sends the score and feedback right away. The second call writes the next question, and that response streams through the WebSocket token by token, so the user sees the question appear word by word.
 
 **Why this solution**
 
-- The first words show up in under a second, so the wait feels short even though the full response takes the same time.
+- The user gets the score and feedback as soon as the scoring call is done, so they have something to read while the next question is being written.
+- The question streams, so its first words show up before the full question is written. The wait before the first word is the scoring call, the save and the start of the second call. We have not measured it.
 - The connection is already open, so there is no new request per answer.
-- Saving first costs a few milliseconds and means we never show a question for an answer we have not stored.
+- Saving first costs a few milliseconds and means we never show a score or a question for an answer we have not stored.
 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
-    SVC["<b>Service Layer</b><br/>• Save answer<br/>• Stream next question"]
+    SVC["<b>Service Layer</b><br/>• Save answer + score<br/>• Send score<br/>• Stream next question"]
     PG[(PostgreSQL)]
     LLM["LLM<br/>external"]
 
     Client <-->|WebSocket| GW
     GW <-->|proxy| SVC
-    SVC -->|save answer + score| PG
-    SVC -->|score + next question| LLM
+    SVC -->|1. score the answer| LLM
+    SVC -->|2. save answer + score| PG
+    SVC -->|3. write next question, streamed| LLM
 ```
 
 ---
