@@ -41,6 +41,8 @@ Phase 3 — Project deep dive (25 to 45 minutes): LLM goes deeper on projects me
 
 The 45 minute timer runs server side. When time runs out, the server automatically ends the session and triggers report generation. The user can also end the session early at any time. Both paths lead to the same report generation flow.
 
+The timer is based on `started_at` and keeps running while the user is disconnected. If the user stays disconnected for more than 5 minutes before the 45 minutes are over, the session status becomes `dropped`. A dropped session can be resumed only while the 45 minutes are not over. If they run out first, the server completes the session and generates the report from the answers already saved. Running out of time is always `completed`, never `dropped`.
+
 **Voice answers.** The user answers by speaking. There is no typed answer, no submit button and no done button. Questions are shown as text on screen, there is no text-to-speech. The browser turns speech into text and the user sees a live transcript while speaking. The frontend sends the final text to the server over the WebSocket, so the server only ever receives text.
 
 An answer is submitted automatically after a 5 second pause. The pause is only counted once the user has started speaking, so silence at the start of a question never submits anything. A single answer is cut off and submitted at 3 minutes even if the user is still speaking.
@@ -154,24 +156,33 @@ Response:
 ```
 
 ### WS /api/session/{session_id}/interview
-WebSocket for the live interview. The client sends answers, the server sends questions, scores and feedback in real time. The connection stays open for the full 45 minute session.
+WebSocket for the live interview. The client sends answers, the server sends scores, feedback and questions in real time. The connection stays open for the full 45 minute session.
 
 Client message:
 ```json
 { "answer": "string", "question_number": 1, "skipped": false }
 ```
 `answer` is the transcript text from the browser's speech recognition. The client sends it when the pause or the answer length cap from Voice answers in section 2 is reached. When the user gave no answer after the repeat (see Voice answers in section 2), the client sends `"answer": ""` and `"skipped": true`. The server scores a skipped question 0 without calling the LLM. The server cuts `answer` to 5000 characters, which is more than the answer length cap allows, and saves the text as received before scoring.
-Server message:
+Server messages. Every answer gets them in this order, and each has a `type` field so the client can tell them apart.
+
+1. Score message, sent after the answer and its score are saved. `question_number` is the question that was just answered. For a skipped question the score is 0 and no LLM call is made.
+```json
+{ "type": "score", "question_number": 1, "score": 7, "feedback": "string" }
+```
+2. Question chunks, sent while the next question is being written. The client appends `text` as it arrives.
+```json
+{ "type": "question_chunk", "text": "string" }
+```
+3. Question message, sent once when the question is complete. It holds the full text, so the client can replace the chunks with it.
 ```json
 {
+  "type": "question",
   "question": "string",
   "question_number": 2,
-  "question_type": "resume/behavioral/technical",
-  "score": 7,
-  "feedback": "string"
+  "question_type": "resume/behavioral/technical"
 }
 ```
-`score` and `feedback` are for the previous answer.
+The score message is never sent before the answer and score are saved, and the question is never sent before the score message.
 
 ### GET /api/session/{session_id}/resume
 Resume a dropped session from the last saved question.
@@ -258,7 +269,7 @@ If the signals are mixed, the lower level wins. Hard needs concrete evidence on 
 
 ### 3. Live Interview Session
 
-The interview runs over a persistent WebSocket connection that stays open for the full 45 minutes. WebSocket is chosen over HTTP because the interview is bidirectional — the client sends answers and the server sends questions continuously throughout the session. The session runs in three time based phases: resume questions from 0 to 15 minutes, behavioral questions from 15 to 25 minutes, and project deep dive from 25 to 45 minutes. On every answer, LLM scores it, generates feedback, and creates the next question in one call. The score and answer are saved to PostgreSQL before the next question is sent. Active session history is cached in Redis so LLM always has full conversation context without hitting PostgreSQL on every call.
+The interview runs over a persistent WebSocket connection that stays open for the full 45 minutes. WebSocket is chosen over HTTP because the interview is bidirectional — the client sends answers and the server sends questions continuously throughout the session. The session runs in three time based phases: resume questions from 0 to 15 minutes, behavioral questions from 15 to 25 minutes, and project deep dive from 25 to 45 minutes. On every answer, the first LLM call scores it and generates feedback. The score and answer are saved to PostgreSQL, the score is sent to the user, and then a second LLM call creates the next question and streams it. Active session history is cached in Redis so LLM always has full conversation context without hitting PostgreSQL on every call.
 
 ---
 
@@ -295,7 +306,7 @@ flowchart LR
 **How it works**
 
 1. The user logs in with GitHub SSO and uploads a resume. Both go through the API Gateway, which rate limits, checks auth and balances load.
-2. The Service Layer runs the interview. It asks the LLM to score each answer and write the next question.
+2. The Service Layer runs the interview. It asks the LLM to score each answer, saves the score, then asks it in a second call to write the next question.
 3. Questions and answers move over a WebSocket for the whole session. The client connects to the API Gateway, which proxies the WebSocket to the Service Layer.
 4. Every answer and score is saved to PostgreSQL. Redis holds the running conversation for the active session so each LLM call does not have to rebuild it from the database.
 5. At the end, the Service Layer builds the report from the saved scores.
@@ -316,27 +327,29 @@ An LLM call with the full conversation takes 3 to 8 seconds. If the user submits
 
 **Solution**
 
-The WebSocket stays open for the whole session. The LLM response streams through it token by token, so the user sees the next question appear word by word. The answer is saved to PostgreSQL first, then the next question starts streaming.
+The WebSocket stays open for the whole session. Each answer takes two LLM calls. The first call scores the answer. The server saves the answer and score to PostgreSQL and sends the score and feedback right away. The second call writes the next question, and that response streams through the WebSocket token by token, so the user sees the question appear word by word.
 
 **Why this solution**
 
-- The first words show up in under a second, so the wait feels short even though the full response takes the same time.
+- The user gets the score and feedback as soon as the scoring call is done, so they have something to read while the next question is being written.
+- The question streams, so its first words show up before the full question is written. The wait before the first word is the scoring call, the save and the start of the second call. We have not measured it.
 - The connection is already open, so there is no new request per answer.
-- Saving first costs a few milliseconds and means we never show a question for an answer we have not stored.
+- Saving first costs a few milliseconds and means we never show a score or a question for an answer we have not stored.
 
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 150}}}%%
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
-    SVC["<b>Service Layer</b><br/>• Save answer<br/>• Stream next question"]
+    SVC["<b>Service Layer</b><br/>• Save answer + score<br/>• Send score<br/>• Stream next question"]
     PG[(PostgreSQL)]
     LLM["LLM<br/>external"]
 
     Client <-->|WebSocket| GW
     GW <-->|proxy| SVC
-    SVC -->|save answer + score| PG
-    SVC -->|score + next question| LLM
+    SVC -->|1. score the answer| LLM
+    SVC -->|2. save answer + score| PG
+    SVC -->|3. write next question, streamed| LLM
 ```
 
 ---
@@ -349,11 +362,11 @@ If the server crashes mid session, anything held only in memory is lost. If we s
 
 **Solution**
 
-Every answer and score is written to PostgreSQL right after the LLM scores it. The next question is only sent after the write is confirmed. The session stores `current_question_number`, so a dropped session can restart from the exact question where it stopped.
+Every answer and score is written to PostgreSQL right after the scoring call returns. The score message and the next question are only sent after the write is confirmed, and the score message goes first. The session stores `current_question_number`, so a dropped session can restart from the exact question where it stopped.
 
 **Why this solution**
 
-- No answer is ever shown as "done" without being stored.
+- No answer is ever shown as "done" without being stored. The user never sees a score that is not in the database.
 - Resume is simple. The database already has everything up to the last question.
 - The cost is a small delay per answer, which streaming mostly hides.
 
@@ -362,12 +375,12 @@ Every answer and score is written to PostgreSQL right after the LLM scores it. T
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
-    SVC["<b>Service Layer</b><br/>• Save first<br/>• Then send next question"]
+    SVC["<b>Service Layer</b><br/>• Save first<br/>• Then send score<br/>• Then send next question"]
     PG[(PostgreSQL)]
 
     Client <-->|WebSocket| GW
     GW <-->|proxy| SVC
-    SVC -->|1. save answer + score| PG
+    SVC -->|1. save answer + score, wait for confirm| PG
 ```
 
 ---
@@ -591,9 +604,11 @@ Why we chose it: Scoring answers and writing follow up questions needs a strong 
 
 Generic opening questions come from a static question bank to save LLM API cost. LLM generates all other questions dynamically.
 
+Each answer takes two LLM calls. Call 1 scores the answer and returns the score and feedback as JSON. The server saves the answer and score, then makes call 2, which writes the next question and streams it to the user. We use two calls because if the score and the next question came back together, the question would already be streaming before the score could be saved.
+
 Pros:
 - Streaming support, which we need for low latency.
-- Reliable structured JSON output, which fits our single call that returns score, feedback and the next question.
+- Reliable structured JSON output, which fits the scoring call that returns score and feedback.
 - Low cost with GPT-4o-mini, so a 45 minute session stays cheap during the MVP.
 - Well known SDK with a large community, so most problems already have an answer online.
 - Strong at reading resumes, code summaries and open ended answers.
@@ -601,6 +616,7 @@ Pros:
 
 Cons:
 - Cost grows with every question, since each call includes conversation history.
+- Two calls per answer cost more than one, and the question starts streaming only after the scoring call finishes and the save is confirmed. We have not measured the extra cost or wait.
 - 3 to 8 second response time, which streaming hides but does not remove.
 - Scores are not perfectly consistent. The same answer can get slightly different scores.
 - Provider rate limits and outages are outside our control, and we depend on a single provider.
