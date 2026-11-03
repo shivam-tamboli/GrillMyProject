@@ -23,7 +23,7 @@
 **Additional (Phase 1, not core)**
 
 - WebSocket connection for live two way communication during the interview.
-- Dynamic difficulty. If user scores 7 or above out of 10 on 3 consecutive answers, difficulty automatically upgrades to the next level. The new level is stored in the session so it persists if the user drops off and resumes.
+- Dynamic difficulty. If user scores 7 or above out of 10 on 3 consecutive answers, difficulty automatically upgrades to the next level. The new level is stored in the session so it persists if the user drops off and resumes. Hard is the top level. Users who start at Hard stay at Hard, because there is no higher level.
 - Coaching. When the user is stuck, the AI guides and encourages instead of just moving on.
 - Session resume. If the user drops off mid interview, they can continue from the last saved question.
 - Preparation Guide page, linked from the report when answers were unstructured.
@@ -66,7 +66,7 @@ The 45 minute timer runs server side. When time runs out, the server automatical
 - id, user_id, repo_url, extracted_summary, created_at
 
 **Session**
-- id, user_id, resume_id, project_id (nullable), confirmed_level, status (ongoing/completed/dropped), current_question_number, overall_score, started_at, ended_at
+- id, user_id, resume_id, project_id (nullable), current_level, status (ongoing/completed/dropped), current_question_number, overall_score, started_at, ended_at
 
 **Message**
 - id, session_id, role (ai/user), content, question_number, question_type (resume/behavioral/technical), score (out of 10), feedback, created_at
@@ -174,7 +174,7 @@ Response:
   "session_id": "string",
   "current_question_number": 7,
   "last_question": "string",
-  "confirmed_level": "easy/medium/hard"
+  "current_level": "easy/medium/hard"
 }
 ```
 
@@ -230,7 +230,21 @@ We use GitHub SSO for authentication. When a user lands on the platform, they si
 
 ### 2. Resume Scan and Level Detection
 
-When the user uploads their resume, the system extracts the text and sends it to LLM. LLM reads the resume and detects the user's experience level — Easy, Medium, or Hard — based on their projects, tech stack, and experience. The detected level is shown to the user before the interview starts. The user can confirm it or correct it if wrong. This confirmed level is stored in the session and used to calibrate question difficulty throughout the interview. We chose LLM for this because resume formats vary widely and rule based parsing would miss too much context.
+When the user uploads their resume, the system extracts the text and sends it to LLM. LLM reads the resume and detects the user's experience level — Easy, Medium, or Hard — using the rubric below. The detected level is shown to the user before the interview starts. The user can confirm it or correct it if wrong. The level is saved on the resume as `confirmed_level`. When the interview starts, it is copied to the session as `current_level`, which sets the question difficulty and can go up during the interview. We chose LLM for this because resume formats vary widely and rule based parsing would miss too much context.
+
+If the PDF has no readable text, for example a scanned image, the upload fails with an error asking for a text based PDF. We do not do OCR in Phase 1. If LLM returns an invalid level, we retry once. If it fails again, the upload fails with an error and the user can try again.
+
+**Level rubric**
+
+The level is judged by what the person has done. Years are only a hint.
+
+| Level | Roughly | What the resume shows |
+|---|---|---|
+| Easy | Fresher, 0 experience up to about 1.5 years | Coursework, bootcamp or small personal projects. Features built with guidance. No production ownership. |
+| Medium | Mid level, about 1.5 to 4 years | Owned features or services end to end. Real backend or database work, APIs, deployments. Some outcomes, but little on design decisions or leading. |
+| Hard | Senior, about 4+ years | Designed systems and made trade-off calls. Evidence of scale with numbers (traffic, data size, latency, reliability). Led projects, mentored, or drove technical decisions. |
+
+If the signals are mixed, the lower level wins. Hard needs concrete evidence on the resume. A resume is self reported and the model cannot verify it, so the user confirmation step is the safety net. `detected_level` stays unchanged when the user corrects it, so we can compare detected and confirmed levels later and tune the rubric.
 
 ---
 
@@ -437,7 +451,7 @@ All tables are in PostgreSQL. `id` columns are UUIDs.
 | user_id | uuid | FK to users.id |
 | resume_id | uuid | FK to resumes.id |
 | project_id | uuid | FK to projects.id, nullable |
-| confirmed_level | text | level used for this session, can go up during the session |
+| current_level | text | level for this session, starts as the resume's confirmed_level, can go up during the session |
 | status | text | ongoing / completed / dropped |
 | current_question_number | int | used to resume dropped sessions |
 | overall_score | numeric(3,1) | nullable until the session ends |
