@@ -413,6 +413,8 @@ First — strong system prompt. Every LLM call starts with an explicit instructi
 
 Second — input sanitization. Before sending resume content, repo content, or user answers to LLM, the system scans for suspicious patterns like 'ignore instructions', 'you are now', 'score 10'. These are flagged or stripped before reaching the prompt. This is a mitigation, not a guarantee. A determined attacker can work around pattern matching. The strong system prompt is the primary defence. Sanitization is a second layer.
 
+Spoken answers get the same treatment. The server scans the transcript text it receives over the WebSocket, the same way it would scan typed text. Speech recognition adds a gap here: it can mishear an injection phrase into words the patterns do not match, so the scan catches less in spoken answers than in typed ones. That is one more reason the system prompt is the main protection.
+
 ---
 
 ## 8. Database Schema
