@@ -18,6 +18,7 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text)
     question_number: Mapped[int] = mapped_column(Integer)
     question_type: Mapped[str] = mapped_column(String)
+    bank_question_id: Mapped[str | None] = mapped_column(String, nullable=True)
     score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
