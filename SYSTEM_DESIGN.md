@@ -160,7 +160,7 @@ Client message:
 ```json
 { "answer": "string", "question_number": 1, "skipped": false }
 ```
-`answer` is the transcript text from the browser's speech recognition. The client sends it after the 5 second pause, or at the 3 minute cap. When the user gave no answer after the repeat (see Voice answers in section 2), the client sends `"answer": ""` and `"skipped": true`. The server scores a skipped question 0 without calling the LLM. The server cuts `answer` to 5000 characters, which is more than 3 minutes of speech, and saves the text as received before scoring.
+`answer` is the transcript text from the browser's speech recognition. The client sends it when the pause or the answer length cap from Voice answers in section 2 is reached. When the user gave no answer after the repeat (see Voice answers in section 2), the client sends `"answer": ""` and `"skipped": true`. The server scores a skipped question 0 without calling the LLM. The server cuts `answer` to 5000 characters, which is more than the answer length cap allows, and saves the text as received before scoring.
 Server message:
 ```json
 {
@@ -549,7 +549,7 @@ Cons:
 - Works on Chrome and Edge only. Other browsers cannot take the interview, and there is no typed fallback.
 - Audio is sent to the browser vendor's speech service (Google in Chrome), not to us. Users should be told.
 - We cannot tune accuracy. Technical terms like Kubernetes or idempotent can be misheard, and the user cannot fix the text before it is submitted. The scoring prompt must say that answers are speech transcripts. The raw transcript is saved as received.
-- The browser ends recognition on its own after silence or a long answer, so the frontend has to restart it and run its own 5 second pause timer.
+- The browser ends recognition on its own after silence or a long answer, so the frontend has to restart it and run its own pause timer.
 - Background noise or a cough can count as speech and start the pause timer.
 - Users who cannot speak clearly, or at all, cannot use the interview.
 
