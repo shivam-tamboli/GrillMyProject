@@ -269,7 +269,7 @@ If the signals are mixed, the lower level wins. Hard needs concrete evidence on 
 
 ### 3. Live Interview Session
 
-The interview runs over a persistent WebSocket connection that stays open for the full 45 minutes. WebSocket is chosen over HTTP because the interview is bidirectional — the client sends answers and the server sends questions continuously throughout the session. The session runs in three time based phases: resume questions from 0 to 15 minutes, behavioral questions from 15 to 25 minutes, and project deep dive from 25 to 45 minutes. On every answer, LLM scores it, generates feedback, and creates the next question in one call. The score and answer are saved to PostgreSQL before the next question is sent. Active session history is cached in Redis so LLM always has full conversation context without hitting PostgreSQL on every call.
+The interview runs over a persistent WebSocket connection that stays open for the full 45 minutes. WebSocket is chosen over HTTP because the interview is bidirectional — the client sends answers and the server sends questions continuously throughout the session. The session runs in three time based phases: resume questions from 0 to 15 minutes, behavioral questions from 15 to 25 minutes, and project deep dive from 25 to 45 minutes. On every answer, the first LLM call scores it and generates feedback. The score and answer are saved to PostgreSQL, the score is sent to the user, and then a second LLM call creates the next question and streams it. Active session history is cached in Redis so LLM always has full conversation context without hitting PostgreSQL on every call.
 
 ---
 
@@ -306,7 +306,7 @@ flowchart LR
 **How it works**
 
 1. The user logs in with GitHub SSO and uploads a resume. Both go through the API Gateway, which rate limits, checks auth and balances load.
-2. The Service Layer runs the interview. It asks the LLM to score each answer and write the next question.
+2. The Service Layer runs the interview. It asks the LLM to score each answer, saves the score, then asks it in a second call to write the next question.
 3. Questions and answers move over a WebSocket for the whole session. The client connects to the API Gateway, which proxies the WebSocket to the Service Layer.
 4. Every answer and score is saved to PostgreSQL. Redis holds the running conversation for the active session so each LLM call does not have to rebuild it from the database.
 5. At the end, the Service Layer builds the report from the saved scores.
@@ -604,7 +604,7 @@ Why we chose it: Scoring answers and writing follow up questions needs a strong 
 
 Generic opening questions come from a static question bank to save LLM API cost. LLM generates all other questions dynamically.
 
-Each answer takes two LLM calls. Call 1 scores the answer and returns the score and feedback as JSON. The server saves the answer and score, then makes call 2, which writes the next question and streams it to the user. We use two calls and not one because a single call that returns the score and the next question together cannot be saved before the question starts streaming.
+Each answer takes two LLM calls. Call 1 scores the answer and returns the score and feedback as JSON. The server saves the answer and score, then makes call 2, which writes the next question and streams it to the user. We use two calls because if the score and the next question came back together, the question would already be streaming before the score could be saved.
 
 Pros:
 - Streaming support, which we need for low latency.
