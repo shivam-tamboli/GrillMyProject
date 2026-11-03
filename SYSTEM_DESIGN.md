@@ -41,6 +41,8 @@ Phase 3 — Project deep dive (25 to 45 minutes): LLM goes deeper on projects me
 
 The 45 minute timer runs server side. When time runs out, the server automatically ends the session and triggers report generation. The user can also end the session early at any time. Both paths lead to the same report generation flow.
 
+The timer is based on `started_at` and keeps running while the user is disconnected. If the user stays disconnected for more than 5 minutes before the 45 minutes are over, the session status becomes `dropped`. A dropped session can be resumed only while the 45 minutes are not over. If they run out first, the server completes the session and generates the report from the answers already saved. Running out of time is always `completed`, never `dropped`.
+
 **Voice answers.** The user answers by speaking. There is no typed answer, no submit button and no done button. Questions are shown as text on screen, there is no text-to-speech. The browser turns speech into text and the user sees a live transcript while speaking. The frontend sends the final text to the server over the WebSocket, so the server only ever receives text.
 
 An answer is submitted automatically after a 5 second pause. The pause is only counted once the user has started speaking, so silence at the start of a question never submits anything. A single answer is cut off and submitted at 3 minutes even if the user is still speaking.
