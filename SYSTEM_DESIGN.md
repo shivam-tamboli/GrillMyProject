@@ -41,7 +41,13 @@ Phase 3 — Project deep dive (25 to 45 minutes): LLM goes deeper on projects me
 
 The 45 minute timer runs server side. When time runs out, the server automatically ends the session and triggers report generation. The user can also end the session early at any time. Both paths lead to the same report generation flow.
 
-**Out of scope for Phase 1:** file uploads other than the resume PDF, per question timers, delete endpoints for projects and accounts.
+**Voice answers.** The user answers by speaking. There is no typed answer, no submit button and no done button. Questions are shown as text on screen, there is no text-to-speech. The browser turns speech into text and the user sees a live transcript while speaking. The frontend sends the final text to the server over the WebSocket, so the server only ever receives text.
+
+An answer is submitted automatically after a 5 second pause. The pause is only counted once the user has started speaking, so silence at the start of a question never submits anything. A single answer is cut off and submitted at 3 minutes even if the user is still speaking.
+
+No answer rule. If the user has not started speaking 45 seconds after a question is shown, the question is shown again on screen with a short prompt to answer. If there is still no speech after 45 more seconds, the question is skipped and scored 0. A skipped question counts as a score of 0 in the difficulty rule, so it breaks a streak of 7+ scores.
+
+**Out of scope for Phase 1:** file uploads other than the resume PDF, delete endpoints for projects and accounts, a time limit shown to the user for each question.
 
 ---
 
