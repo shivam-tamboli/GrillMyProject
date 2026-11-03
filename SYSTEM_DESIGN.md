@@ -360,11 +360,11 @@ If the server crashes mid session, anything held only in memory is lost. If we s
 
 **Solution**
 
-Every answer and score is written to PostgreSQL right after the LLM scores it. The next question is only sent after the write is confirmed. The session stores `current_question_number`, so a dropped session can restart from the exact question where it stopped.
+Every answer and score is written to PostgreSQL right after the scoring call returns. The score message and the next question are only sent after the write is confirmed, and the score message goes first. The session stores `current_question_number`, so a dropped session can restart from the exact question where it stopped.
 
 **Why this solution**
 
-- No answer is ever shown as "done" without being stored.
+- No answer is ever shown as "done" without being stored. The user never sees a score that is not in the database.
 - Resume is simple. The database already has everything up to the last question.
 - The cost is a small delay per answer, which streaming mostly hides.
 
@@ -373,12 +373,12 @@ Every answer and score is written to PostgreSQL right after the LLM scores it. T
 flowchart LR
     Client(Client)
     GW["<b>API Gateway</b><br/>• Rate Limiter<br/>• Auth<br/>• Load Balancer"]
-    SVC["<b>Service Layer</b><br/>• Save first<br/>• Then send next question"]
+    SVC["<b>Service Layer</b><br/>• Save first<br/>• Then send score<br/>• Then send next question"]
     PG[(PostgreSQL)]
 
     Client <-->|WebSocket| GW
     GW <-->|proxy| SVC
-    SVC -->|1. save answer + score| PG
+    SVC -->|1. save answer + score, wait for confirm| PG
 ```
 
 ---
