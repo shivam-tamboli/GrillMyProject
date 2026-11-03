@@ -127,11 +127,11 @@ User confirms or corrects the detected level.
 
 Request:
 ```json
-{ "resume_id": "string", "confirmed_level": "easy/medium/hard" }
+{ "resume_id": "string", "level": "easy/medium/hard" }
 ```
 Response:
 ```json
-{ "confirmed": true, "level": "string" }
+{ "resume_id": "string", "confirmed_level": "easy/medium/hard" }
 ```
 
 ### POST /api/session/start
