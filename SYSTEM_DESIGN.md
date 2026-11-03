@@ -535,6 +535,26 @@ Cons:
 - Harder to debug and test than plain HTTP.
 - SSE would have been simpler for streaming alone. We picked WebSocket because answers also flow the other way.
 
+**Speech to Text (browser Web Speech API)**
+
+Why we chose it: Users answer by speaking, and the browser already has speech recognition. It turns speech into text on the client, so the server only receives text and the WebSocket, scoring and security design stay the same.
+
+Pros:
+- No backend change and no extra cost per answer.
+- Interim results arrive while the user speaks, which gives the live transcript.
+- No audio upload, so no added wait on each answer.
+- The server never handles audio files.
+
+Cons:
+- Works on Chrome and Edge only. Other browsers cannot take the interview, and there is no typed fallback.
+- Audio is sent to the browser vendor's speech service (Google in Chrome), not to us. Users should be told.
+- We cannot tune accuracy. Technical terms like Kubernetes or idempotent can be misheard, and the user cannot fix the text before it is submitted. The scoring prompt must say that answers are speech transcripts. The raw transcript is saved as received.
+- The browser ends recognition on its own after silence or a long answer, so the frontend has to restart it and run its own 5 second pause timer.
+- Background noise or a cough can count as speech and start the pause timer.
+- Users who cannot speak clearly, or at all, cannot use the interview.
+
+If browser accuracy turns out to be too low with real users, the option is server side transcription, such as OpenAI's transcription model. It works the same on every browser and probably handles technical terms better, but adds a cost per answer, an audio upload and a wait before scoring. We have not priced or tested it. Because the server only sees text today, switching would change the audio path and the WebSocket message, not the scoring.
+
 **PostgreSQL**
 
 Why we chose it: Our data is relational and we need a write to be confirmed before moving on.
