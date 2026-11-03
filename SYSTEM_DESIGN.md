@@ -41,7 +41,13 @@ Phase 3 — Project deep dive (25 to 45 minutes): LLM goes deeper on projects me
 
 The 45 minute timer runs server side. When time runs out, the server automatically ends the session and triggers report generation. The user can also end the session early at any time. Both paths lead to the same report generation flow.
 
-**Out of scope for Phase 1:** file uploads other than the resume PDF, per question timers, delete endpoints for projects and accounts.
+**Voice answers.** The user answers by speaking. There is no typed answer, no submit button and no done button. Questions are shown as text on screen, there is no text-to-speech. The browser turns speech into text and the user sees a live transcript while speaking. The frontend sends the final text to the server over the WebSocket, so the server only ever receives text.
+
+An answer is submitted automatically after a 5 second pause. The pause is only counted once the user has started speaking, so silence at the start of a question never submits anything. A single answer is cut off and submitted at 3 minutes even if the user is still speaking.
+
+No answer rule. If the user has not started speaking 45 seconds after a question is shown, the question is shown again on screen with a short prompt to answer. If there is still no speech after 45 more seconds, the question is skipped and scored 0. A skipped question counts as a score of 0 in the difficulty rule, so it breaks a streak of 7+ scores.
+
+**Out of scope for Phase 1:** file uploads other than the resume PDF, delete endpoints for projects and accounts, a time limit shown to the user for each question.
 
 ---
 
@@ -51,6 +57,7 @@ The 45 minute timer runs server side. When time runs out, the server automatical
 2. **Consistency.** No answer or score is lost during a live session, even if the server crashes.
 3. **Security.** GitHub tokens and user data are protected.
 4. **Scalability.** Many interviews can run at the same time without slowing down.
+5. **Browser support.** Voice answers need the browser's speech recognition, which works on Chrome and Edge. Other browsers are not supported for the interview. There is no typed answer fallback. Before the interview starts, the user passes a mic check: allow the microphone and say a test sentence. If the check fails, the interview does not start.
 
 ---
 
@@ -151,8 +158,9 @@ WebSocket for the live interview. The client sends answers, the server sends que
 
 Client message:
 ```json
-{ "answer": "string", "question_number": 1 }
+{ "answer": "string", "question_number": 1, "skipped": false }
 ```
+`answer` is the transcript text from the browser's speech recognition. The client sends it when the pause or the answer length cap from Voice answers in section 2 is reached. When the user gave no answer after the repeat (see Voice answers in section 2), the client sends `"answer": ""` and `"skipped": true`. The server scores a skipped question 0 without calling the LLM. The server cuts `answer` to 5000 characters, which is more than the answer length cap allows, and saves the text as received before scoring.
 Server message:
 ```json
 {
@@ -405,6 +413,8 @@ First — strong system prompt. Every LLM call starts with an explicit instructi
 
 Second — input sanitization. Before sending resume content, repo content, or user answers to LLM, the system scans for suspicious patterns like 'ignore instructions', 'you are now', 'score 10'. These are flagged or stripped before reaching the prompt. This is a mitigation, not a guarantee. A determined attacker can work around pattern matching. The strong system prompt is the primary defence. Sanitization is a second layer.
 
+Spoken answers get the same treatment. The server scans the transcript text it receives over the WebSocket, the same way it would scan typed text. Speech recognition adds a gap here: it can mishear an injection phrase into words the patterns do not match, so the scan catches less in spoken answers than in typed ones. That is one more reason the system prompt is the main protection.
+
 ---
 
 ## 8. Database Schema
@@ -524,6 +534,26 @@ Cons:
 - Dropped connections need reconnect logic on the client. Session resume covers this.
 - Harder to debug and test than plain HTTP.
 - SSE would have been simpler for streaming alone. We picked WebSocket because answers also flow the other way.
+
+**Speech to Text (browser Web Speech API)**
+
+Why we chose it: Users answer by speaking, and the browser already has speech recognition. It turns speech into text on the client, so the server only receives text and the WebSocket, scoring and security design stay the same.
+
+Pros:
+- No backend change and no extra cost per answer.
+- Interim results arrive while the user speaks, which gives the live transcript.
+- No audio upload, so no added wait on each answer.
+- The server never handles audio files.
+
+Cons:
+- Works on Chrome and Edge only. Other browsers cannot take the interview, and there is no typed fallback.
+- Audio is sent to the browser vendor's speech service (Google in Chrome), not to us. Users should be told.
+- We cannot tune accuracy. Technical terms like Kubernetes or idempotent can be misheard, and the user cannot fix the text before it is submitted. The scoring prompt must say that answers are speech transcripts. The raw transcript is saved as received.
+- The browser ends recognition on its own after silence or a long answer, so the frontend has to restart it and run its own pause timer.
+- Background noise or a cough can count as speech and start the pause timer.
+- Users who cannot speak clearly, or at all, cannot use the interview.
+
+If browser accuracy turns out to be too low with real users, the option is server side transcription, such as OpenAI's transcription model. It works the same on every browser and probably handles technical terms better, but adds a cost per answer, an audio upload and a wait before scoring. We have not priced or tested it. Because the server only sees text today, switching would change the audio path and the WebSocket message, not the scoring.
 
 **PostgreSQL**
 
