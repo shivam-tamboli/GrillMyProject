@@ -131,7 +131,7 @@ Request:
 ```
 Response:
 ```json
-{ "confirmed": true, "level": "string" }
+{ "resume_id": "string", "confirmed_level": "easy/medium/hard" }
 ```
 
 ### POST /api/session/start
