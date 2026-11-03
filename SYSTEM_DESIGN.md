@@ -591,9 +591,11 @@ Why we chose it: Scoring answers and writing follow up questions needs a strong 
 
 Generic opening questions come from a static question bank to save LLM API cost. LLM generates all other questions dynamically.
 
+Each answer takes two LLM calls. Call 1 scores the answer and returns the score and feedback as JSON. The server saves the answer and score, then makes call 2, which writes the next question and streams it to the user. We use two calls and not one because a single call that returns the score and the next question together cannot be saved before the question starts streaming.
+
 Pros:
 - Streaming support, which we need for low latency.
-- Reliable structured JSON output, which fits our single call that returns score, feedback and the next question.
+- Reliable structured JSON output, which fits the scoring call that returns score and feedback.
 - Low cost with GPT-4o-mini, so a 45 minute session stays cheap during the MVP.
 - Well known SDK with a large community, so most problems already have an answer online.
 - Strong at reading resumes, code summaries and open ended answers.
@@ -601,6 +603,7 @@ Pros:
 
 Cons:
 - Cost grows with every question, since each call includes conversation history.
+- Two calls per answer cost more than one, and the question starts streaming only after the scoring call finishes and the save is confirmed. We have not measured the extra cost or wait.
 - 3 to 8 second response time, which streaming hides but does not remove.
 - Scores are not perfectly consistent. The same answer can get slightly different scores.
 - Provider rate limits and outages are outside our control, and we depend on a single provider.
