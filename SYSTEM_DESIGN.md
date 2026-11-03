@@ -57,6 +57,7 @@ No answer rule. If the user has not started speaking 45 seconds after a question
 2. **Consistency.** No answer or score is lost during a live session, even if the server crashes.
 3. **Security.** GitHub tokens and user data are protected.
 4. **Scalability.** Many interviews can run at the same time without slowing down.
+5. **Browser support.** Voice answers need the browser's speech recognition, which works on Chrome and Edge. Other browsers are not supported for the interview. There is no typed answer fallback. Before the interview starts, the user passes a mic check: allow the microphone and say a test sentence. If the check fails, the interview does not start.
 
 ---
 
