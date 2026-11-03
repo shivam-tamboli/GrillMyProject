@@ -1,4 +1,8 @@
+import uuid
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -41,3 +45,24 @@ def upload_resume(
     db.commit()
     db.refresh(resume)
     return {"resume_id": str(resume.id), "detected_level": resume.detected_level}
+
+
+class ConfirmLevelBody(BaseModel):
+    resume_id: uuid.UUID
+    level: Literal["easy", "medium", "hard"]
+
+
+@router.post("/confirm-level")
+def confirm_level(
+    body: ConfirmLevelBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    resume = db.get(Resume, body.resume_id)
+    # same 404 for "not found" and "not yours" so ids can't be probed
+    if not resume or resume.user_id != user.id:
+        raise HTTPException(status_code=404, detail="resume not found")
+
+    resume.confirmed_level = body.level
+    db.commit()
+    return {"resume_id": str(resume.id), "confirmed_level": resume.confirmed_level}
