@@ -158,8 +158,9 @@ WebSocket for the live interview. The client sends answers, the server sends que
 
 Client message:
 ```json
-{ "answer": "string", "question_number": 1 }
+{ "answer": "string", "question_number": 1, "skipped": false }
 ```
+`answer` is the transcript text from the browser's speech recognition. The client sends it after the 5 second pause, or at the 3 minute cap. When the user gave no answer after the repeat (see Voice answers in section 2), the client sends `"answer": ""` and `"skipped": true`. The server scores a skipped question 0 without calling the LLM. The server cuts `answer` to 5000 characters, which is more than 3 minutes of speech, and saves the text as received before scoring.
 Server message:
 ```json
 {
