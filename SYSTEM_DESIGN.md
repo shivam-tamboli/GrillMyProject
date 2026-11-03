@@ -154,24 +154,33 @@ Response:
 ```
 
 ### WS /api/session/{session_id}/interview
-WebSocket for the live interview. The client sends answers, the server sends questions, scores and feedback in real time. The connection stays open for the full 45 minute session.
+WebSocket for the live interview. The client sends answers, the server sends scores, feedback and questions in real time. The connection stays open for the full 45 minute session.
 
 Client message:
 ```json
 { "answer": "string", "question_number": 1, "skipped": false }
 ```
 `answer` is the transcript text from the browser's speech recognition. The client sends it when the pause or the answer length cap from Voice answers in section 2 is reached. When the user gave no answer after the repeat (see Voice answers in section 2), the client sends `"answer": ""` and `"skipped": true`. The server scores a skipped question 0 without calling the LLM. The server cuts `answer` to 5000 characters, which is more than the answer length cap allows, and saves the text as received before scoring.
-Server message:
+Server messages. Every answer gets them in this order, and each has a `type` field so the client can tell them apart.
+
+1. Score message, sent after the answer and its score are saved. `question_number` is the question that was just answered. For a skipped question the score is 0 and no LLM call is made.
+```json
+{ "type": "score", "question_number": 1, "score": 7, "feedback": "string" }
+```
+2. Question chunks, sent while the next question is being written. The client appends `text` as it arrives.
+```json
+{ "type": "question_chunk", "text": "string" }
+```
+3. Question message, sent once when the question is complete. It holds the full text, so the client can replace the chunks with it.
 ```json
 {
+  "type": "question",
   "question": "string",
   "question_number": 2,
-  "question_type": "resume/behavioral/technical",
-  "score": 7,
-  "feedback": "string"
+  "question_type": "resume/behavioral/technical"
 }
 ```
-`score` and `feedback` are for the previous answer.
+The score message is never sent before the answer and score are saved, and the question is never sent before the score message.
 
 ### GET /api/session/{session_id}/resume
 Resume a dropped session from the last saved question.
