@@ -18,7 +18,7 @@ class InterviewSession(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     resume_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("resumes.id"))
     project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id"), nullable=True)
-    confirmed_level: Mapped[str] = mapped_column(String)
+    current_level: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="ongoing")
     current_question_number: Mapped[int] = mapped_column(Integer, default=1)
     overall_score: Mapped[Decimal | None] = mapped_column(Numeric(3, 1), nullable=True)
