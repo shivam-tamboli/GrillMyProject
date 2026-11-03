@@ -18,6 +18,7 @@ If the PR has merge conflicts, resolve them before merging. The PR body must inc
 ## How to work with me
 
 - Before creating any GitHub issue, show me a draft first and wait for my approval before submitting.
+- Never read the `.env` file. Never print or log environment variable values in output.
 - After completing each task or file, pause and wait for my review before moving to the next step. Do not continue automatically.
 - After each step, explain in 2-3 simple lines what you just built, why we needed it, and how it connects to the rest of the project.
 - Whenever you add a new library, tool, or concept, explain it in 2-3 simple lines before implementing. What is it, why we need it, what happens if we skip it.
