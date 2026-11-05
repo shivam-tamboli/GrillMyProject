@@ -1,0 +1,224 @@
+{
+  "easy": [
+    {
+      "id": "easy-intro",
+      "level": "easy",
+      "text": "Tell me about yourself.",
+      "note": "A short, clear story: background, what they have built, what they want next. Not a list of degrees."
+    },
+    {
+      "id": "easy-01",
+      "level": "easy",
+      "text": "Pick one project from your resume. What does it do, and why did you build it?",
+      "note": "States the problem and who it is for in plain words, not just the tech used."
+    },
+    {
+      "id": "easy-02",
+      "level": "easy",
+      "text": "What exactly did you build in that project, and which parts did someone else do?",
+      "note": "Separates their own work from team or tutorial work. Names specific features."
+    },
+    {
+      "id": "easy-03",
+      "level": "easy",
+      "text": "What was the hardest problem you hit, and how did you solve it?",
+      "note": "A real problem, what they tried, and the fix. 'It was hard' alone is weak."
+    },
+    {
+      "id": "easy-04",
+      "level": "easy",
+      "text": "Why did you choose that tech stack?",
+      "note": "Gives a reason beyond 'it was popular' and names a weakness or an alternative."
+    },
+    {
+      "id": "easy-05",
+      "level": "easy",
+      "text": "Explain your project architecture.",
+      "note": "Describes the main parts and how a request or data moves between them, in order. Names real components, not buzzwords."
+    },
+    {
+      "id": "easy-06",
+      "level": "easy",
+      "text": "Where does your project store its data, and why that choice?",
+      "note": "Names the store and a reason tied to the data. Knows one alternative."
+    },
+    {
+      "id": "easy-07",
+      "level": "easy",
+      "text": "How did you test your project, or check that it worked?",
+      "note": "Describes a real method. If there was little testing, says honestly what they would add."
+    },
+    {
+      "id": "easy-08",
+      "level": "easy",
+      "text": "If you had two more weeks on this project, what would you fix or add first?",
+      "note": "Specific and ordered with a reason. Shows they know the weak spots."
+    },
+    {
+      "id": "easy-09",
+      "level": "easy",
+      "text": "Which libraries or tools did you use in your project? Can you explain what each one does?",
+      "note": "Names real libraries from the project and says what each one does. Can tell what a library gives them from what they wrote themselves."
+    }
+  ],
+  "medium": [
+    {
+      "id": "medium-intro",
+      "level": "medium",
+      "text": "Walk me through your last couple of years, focusing on what you owned.",
+      "note": "Concrete scope such as features or services. Separates their work from the team's. Brief and in order."
+    },
+    {
+      "id": "medium-01",
+      "level": "medium",
+      "text": "Pick the project you are proudest of. What problem did it solve, and who used it?",
+      "note": "Clear problem and user, and an outcome they can point to."
+    },
+    {
+      "id": "medium-02",
+      "level": "medium",
+      "text": "What was one design decision you made in it, and what were the trade-offs?",
+      "note": "Names a real decision, at least two options, and what was given up."
+    },
+    {
+      "id": "medium-03",
+      "level": "medium",
+      "text": "Why did you pick that database and framework? What did you rule out?",
+      "note": "Reasons tied to the workload, and at least one real alternative with why not."
+    },
+    {
+      "id": "medium-04",
+      "level": "medium",
+      "text": "Tell me about something that broke in testing or production. How did you find and fix it?",
+      "note": "How they narrowed it down, not just the fix, and what they changed afterwards."
+    },
+    {
+      "id": "medium-05",
+      "level": "medium",
+      "text": "How is that system split into parts, and how do those parts talk to each other?",
+      "note": "A coherent breakdown with real boundaries and the communication method."
+    },
+    {
+      "id": "medium-06",
+      "level": "medium",
+      "text": "Where did the data model change over time, and why?",
+      "note": "A real change, the reason, and how it was migrated."
+    },
+    {
+      "id": "medium-07",
+      "level": "medium",
+      "text": "How did you make sure a change was safe before it went live?",
+      "note": "Concrete checks such as tests, review, staging or a gradual rollout."
+    },
+    {
+      "id": "medium-08",
+      "level": "medium",
+      "text": "Where was it slow, or where could it be slow, and how would you find out?",
+      "note": "Names a likely bottleneck and a way to measure it, not a guess."
+    },
+    {
+      "id": "medium-09",
+      "level": "medium",
+      "text": "What did you build that someone else on the team later depended on?",
+      "note": "Shows ownership and an interface others used. Mentions how they kept it stable."
+    },
+    {
+      "id": "medium-10",
+      "level": "medium",
+      "text": "What would you redesign if you started over, and what would you keep?",
+      "note": "Specific changes with reasons, and something worth keeping."
+    },
+    {
+      "id": "medium-11",
+      "level": "medium",
+      "text": "How did the system handle failures and retries when one part went down?",
+      "note": "Names a failure case and what happens. Knows about timeouts or retries."
+    },
+    {
+      "id": "medium-12",
+      "level": "medium",
+      "text": "What surprised you about the technology you used?",
+      "note": "A real surprise with what they learned from it. Not generic praise."
+    }
+  ],
+  "hard": [
+    {
+      "id": "hard-intro",
+      "level": "hard",
+      "text": "Walk me through your career at the level of scope and impact. What is the biggest thing you led?",
+      "note": "Scope in people or systems, a clear result, and their own role in it."
+    },
+    {
+      "id": "hard-01",
+      "level": "hard",
+      "text": "Describe the system you are most responsible for. What scale does it run at, and how is it built at a high level?",
+      "note": "Real numbers (users, requests, data size) and a coherent architecture. Vague scale is weak."
+    },
+    {
+      "id": "hard-02",
+      "level": "hard",
+      "text": "What is a technical decision you made that you would reverse now, and why?",
+      "note": "Owns a real mistake, explains the reasoning at the time and what they learned."
+    },
+    {
+      "id": "hard-03",
+      "level": "hard",
+      "text": "How did you choose the main components of that system? Who disagreed, and how did you settle it?",
+      "note": "Trade-offs weighed, other opinions considered, and a clear way the decision was made."
+    },
+    {
+      "id": "hard-04",
+      "level": "hard",
+      "text": "Tell me about a time you improved reliability or performance. How did you measure it?",
+      "note": "A before and after number and how they found the cause."
+    },
+    {
+      "id": "hard-05",
+      "level": "hard",
+      "text": "How does that system fail, and what happens to users when it does?",
+      "note": "Names real failure modes and how users are affected or protected."
+    },
+    {
+      "id": "hard-06",
+      "level": "hard",
+      "text": "What did you decide not to build, and why?",
+      "note": "A real call to leave something out, with reasoning about cost and priority."
+    },
+    {
+      "id": "hard-07",
+      "level": "hard",
+      "text": "How did the design change as load or data grew?",
+      "note": "Specific changes tied to a limit they hit."
+    },
+    {
+      "id": "hard-08",
+      "level": "hard",
+      "text": "How did you decide what the team would build next, and what did you drop?",
+      "note": "Clear way of prioritising, and a real thing they cut."
+    },
+    {
+      "id": "hard-09",
+      "level": "hard",
+      "text": "What is the riskiest part of the system today, and what are you doing about it?",
+      "note": "Names a real risk and a plan, with an honest view of how likely it is."
+    },
+    {
+      "id": "hard-10",
+      "level": "hard",
+      "text": "How did you keep the cost of the system under control?",
+      "note": "Concrete levers and a number or a trend."
+    },
+    {
+      "id": "hard-11",
+      "level": "hard",
+      "text": "How did you roll out a large change without taking the system down?",
+      "note": "A staged approach, a way to check it and a way back."
+    },
+    {
+      "id": "hard-12",
+      "level": "hard",
+      "text": "What did you do to let others on your team work on it without you?",
+      "note": "Documentation, structure or mentoring, with an example of someone who did."
+    }
+  ]
+}
