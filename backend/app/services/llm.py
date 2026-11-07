@@ -12,6 +12,10 @@ class LLMError(Exception):
     pass
 
 
+class LLMBadReply(LLMError):
+    """The call worked but the reply was not a JSON object."""
+
+
 def chat_json(system_prompt: str, user_text: str) -> dict:
     """Send one request and return the JSON reply as a dict."""
     client = openai.OpenAI(api_key=settings.openai_api_key, timeout=TIMEOUT_SECONDS, max_retries=0)
@@ -38,7 +42,7 @@ def chat_json(system_prompt: str, user_text: str) -> dict:
     try:
         data = json.loads(content)
     except json.JSONDecodeError:
-        raise LLMError("OpenAI reply was not valid JSON")
+        raise LLMBadReply("OpenAI reply was not valid JSON")
     if not isinstance(data, dict):
-        raise LLMError("OpenAI reply was not a JSON object")
+        raise LLMBadReply("OpenAI reply was not a JSON object")
     return data
