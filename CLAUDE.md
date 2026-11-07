@@ -30,6 +30,10 @@ If the PR has merge conflicts, resolve them before merging. The PR body must inc
 - Every section must be specific and honest. No vague or filler sentences anywhere in the issue. Show me the draft first. I will read every section and correct anything that is wrong or vague before approving.
 - Keep them short. Why is 2-3 lines. Tasks are terse bullets. Done When only lists checks someone can actually run.
 - Never use line numbers in GitHub issues. Reference sections by name only.
+- No Out of Scope section in issues. Scope is what Tasks lists.
+- Done When: 2-3 lines max, plain checks, not a QA script.
+- Task bullets: one action per bullet, verb-first, no colons introducing sub-specs.
+- PR descriptions: max 4-5 lines. What changed and how it was tested. No section headers unless the PR is large.
 - Always assign the issue to me (`--assignee @me`).
 - Always use labels. If a label does not exist, create it first.
 - Use this format:
@@ -39,7 +43,6 @@ If the PR has merge conflicts, resolve them before merging. The PR body must inc
 ## Why
 ## Tasks
 ## Done When
-## Out of Scope
 ```
 
 ## Pull requests
