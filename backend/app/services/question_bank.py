@@ -1,11 +1,16 @@
 import json
 import random
+from functools import lru_cache
 from pathlib import Path
 
 _BANK_PATH = Path(__file__).resolve().parent.parent / "data" / "question_bank.json"
 
-with open(_BANK_PATH, encoding="utf-8") as f:
-    BANK: dict[str, list[dict]] = json.load(f)
+
+@lru_cache(maxsize=1)
+def get_bank() -> dict[str, list[dict]]:
+    # read on first use and cache, so importing this module never needs the file
+    with open(_BANK_PATH, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def pick_questions(level: str, seen_ids: list[str] | None = None, count: int | None = None) -> list[dict]:
@@ -15,7 +20,7 @@ def pick_questions(level: str, seen_ids: list[str] | None = None, count: int | N
     Unseen questions are used first. If there are not enough, the rest come
     from the seen ones, longest ago first.
     """
-    pool = BANK.get(level)
+    pool = get_bank().get(level)
     if pool is None:
         raise ValueError(f"unknown level: {level}")
 
