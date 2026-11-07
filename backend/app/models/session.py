@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -19,6 +19,7 @@ class InterviewSession(Base):
     resume_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("resumes.id"))
     project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id"), nullable=True)
     current_level: Mapped[str] = mapped_column(String)
+    bank_question_ids: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     status: Mapped[str] = mapped_column(String, default="ongoing")
     current_question_number: Mapped[int] = mapped_column(Integer, default=1)
     overall_score: Mapped[Decimal | None] = mapped_column(Numeric(3, 1), nullable=True)
