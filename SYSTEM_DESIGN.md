@@ -75,7 +75,7 @@ No answer rule. If the user has not started speaking 45 seconds after a question
 - id, user_id, repo_url, extracted_summary, created_at
 
 **Session**
-- id, user_id, resume_id, project_id (nullable), current_level, status (ongoing/completed/dropped), current_question_number, overall_score, started_at, ended_at
+- id, user_id, resume_id, project_id (nullable), current_level, bank_question_ids (nullable, the question bank ids picked at session start), status (ongoing/completed/dropped), current_question_number, overall_score, started_at, ended_at
 
 **Message**
 - id, session_id, role (ai/user), content, question_number, question_type (resume/behavioral/technical), bank_question_id (nullable, set when the question came from the question bank), score (out of 10), feedback, created_at
@@ -483,6 +483,7 @@ All tables are in PostgreSQL. `id` columns are UUIDs.
 | resume_id | uuid | FK to resumes.id |
 | project_id | uuid | FK to projects.id, nullable |
 | current_level | text | level for this session, starts as the resume's confirmed_level, can go up during the session |
+| bank_question_ids | jsonb | nullable. Ordered list of the question bank ids picked for this session, like `["easy-intro", "easy-04", "easy-07"]`. Set at session start |
 | status | text | ongoing / completed / dropped |
 | current_question_number | int | used to resume dropped sessions |
 | overall_score | numeric(3,1) | nullable until the session ends |
