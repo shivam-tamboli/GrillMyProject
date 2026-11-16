@@ -1,15 +1,19 @@
+import asyncio
+import threading
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 
 from app.db.database import SessionLocal
-from app.models import InterviewSession, Message, User
+from app.models import InterviewSession, Message, Resume, User
 from app.services import auth as auth_service
-from app.services.interview import after_score
+from app.services.interview import after_score, phase_for
 from app.services.llm import LLMError
 from app.services.question_bank import get_bank_question
+from app.services.questions import next_bank_question, stream_next_question
 from app.services.scoring import MAX_ANSWER_CHARS, score_answer
 
 router = APIRouter(prefix="/api/session", tags=["interview"])
@@ -116,6 +120,104 @@ def _score_and_save(session_id: uuid.UUID, number: int, answer: str, skipped: bo
     return {"type": "score", "question_number": number, "score": scored["score"], "feedback": scored["feedback"]}, streak
 
 
+def _plan_next(session_id: uuid.UUID) -> dict:
+    """What to ask next. Returns {"phase": "ended"}, a bank question id, or the pieces for the LLM call."""
+    with SessionLocal() as db:
+        session = db.get(InterviewSession, session_id)
+        elapsed_minutes = (datetime.now(timezone.utc) - session.started_at).total_seconds() / 60
+        phase = phase_for(max(elapsed_minutes, 0))
+        if phase == "ended":
+            return {"phase": phase}
+
+        rows = db.scalars(
+            select(Message).where(Message.session_id == session_id).order_by(Message.question_number)
+        ).all()
+        asked_ids = [m.bank_question_id for m in rows if m.role == "ai" and m.bank_question_id]
+        bank_id = next_bank_question(session.bank_question_ids or [], asked_ids, phase)
+        if bank_id:
+            return {"phase": phase, "bank_id": bank_id}
+
+        answers = {m.question_number: m.content for m in rows if m.role == "user"}
+        history = [{"question": m.content, "answer": answers.get(m.question_number, "")} for m in rows if m.role == "ai"]
+        resume = db.get(Resume, session.resume_id)
+        return {
+            "phase": phase,
+            "level": session.current_level,
+            "resume_text": resume.raw_text,
+            "history": history,
+        }
+
+
+def _save_question(session_id: uuid.UUID, text: str, phase: str, bank_id: str | None) -> int:
+    """Save the next question and move current_question_number. Returns the new number."""
+    with SessionLocal() as db:
+        session = db.scalars(
+            select(InterviewSession).where(InterviewSession.id == session_id).with_for_update()
+        ).one()
+        number = session.current_question_number + 1
+        db.add(
+            Message(
+                session_id=session_id,
+                role="ai",
+                content=text,
+                question_number=number,
+                question_type=phase,
+                bank_question_id=bank_id,
+            )
+        )
+        session.current_question_number = number
+        db.commit()
+    return number
+
+
+_DONE = object()
+
+
+async def _stream_question(plan: dict, on_chunk) -> str:
+    """Write the next question with the LLM, passing each chunk to on_chunk. Returns the full text.
+
+    The OpenAI stream is blocking, so it runs in a worker thread and hands chunks
+    over through a queue. A failure is retried once, but only if no chunk has gone
+    out yet, since the client would otherwise get the question twice.
+    """
+    loop = asyncio.get_running_loop()
+    for attempt in range(2):
+        queue: asyncio.Queue = asyncio.Queue()
+        stop = threading.Event()
+
+        def produce():
+            try:
+                for piece in stream_next_question(plan["level"], plan["phase"], plan["resume_text"], plan["history"]):
+                    if stop.is_set():
+                        return
+                    loop.call_soon_threadsafe(queue.put_nowait, piece)
+            except Exception as e:
+                loop.call_soon_threadsafe(queue.put_nowait, e)
+                return
+            loop.call_soon_threadsafe(queue.put_nowait, _DONE)
+
+        loop.run_in_executor(None, produce)
+        pieces: list[str] = []
+        try:
+            while True:
+                item = await queue.get()
+                if item is _DONE:
+                    break
+                if isinstance(item, Exception):
+                    raise item
+                pieces.append(item)
+                await on_chunk(item)
+            text = "".join(pieces).strip()
+            if not text:
+                raise LLMError("the question came back empty")
+            return text
+        except LLMError:
+            if pieces or attempt == 1:
+                raise
+        finally:
+            stop.set()
+
+
 def _error(message: str) -> dict:
     return {"type": "error", "message": message}
 
@@ -155,6 +257,26 @@ async def interview(ws: WebSocket, session_id: uuid.UUID):
                 continue
 
             await ws.send_json(score_message)
-            # the next question is sent in the next tasks
+
+            plan = await run_in_threadpool(_plan_next, session_id)
+            if plan["phase"] == "ended":
+                await ws.send_json({"type": "ended"})
+                await ws.close()
+                return
+
+            bank_id = plan.get("bank_id")
+            if bank_id:
+                text = get_bank_question(bank_id)["text"]
+            else:
+                try:
+                    text = await _stream_question(plan, lambda piece: ws.send_json({"type": "question_chunk", "text": piece}))
+                except LLMError:
+                    await ws.send_json(_error("could not write the next question"))
+                    continue
+
+            number = await run_in_threadpool(_save_question, session_id, text, plan["phase"], bank_id)
+            await ws.send_json(
+                {"type": "question", "question": text, "question_number": number, "question_type": plan["phase"]}
+            )
     except WebSocketDisconnect:
         pass
