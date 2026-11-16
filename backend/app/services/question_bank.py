@@ -13,6 +13,17 @@ def get_bank() -> dict[str, list[dict]]:
         return json.load(f)
 
 
+@lru_cache(maxsize=1)
+def _by_id() -> dict[str, dict]:
+    return {q["id"]: q for pool in get_bank().values() for q in pool}
+
+
+def get_bank_question(question_id: str) -> dict | None:
+    """The bank question with this id, or None if there is no such id."""
+    q = _by_id().get(question_id)
+    return dict(q) if q else None
+
+
 def pick_questions(level: str, seen_ids: list[str] | None = None, count: int | None = None) -> list[dict]:
     """Intro first, then 3 or 4 random questions from the level's pool.
 
