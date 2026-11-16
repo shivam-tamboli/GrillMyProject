@@ -10,7 +10,7 @@ from app.core.deps import get_current_user
 from app.db.database import get_db
 from app.models import InterviewSession, Message, Project, Resume, User
 from app.services.question_bank import pick_questions
-from app.services.session import get_seen_bank_ids
+from app.services.session import complete_session, get_seen_bank_ids
 
 router = APIRouter(prefix="/api/session", tags=["session"])
 
@@ -81,3 +81,18 @@ def start_session(
     )
     db.commit()
     return {"session_id": str(session.id), "first_question": first["text"]}
+
+
+@router.post("/{session_id}/end")
+def end_session(
+    session_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session = db.get(InterviewSession, session_id)
+    if not session or session.user_id != user.id:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    session = complete_session(db, session.id)
+    score = float(session.overall_score) if session.overall_score is not None else None
+    return {"session_id": str(session.id), "overall_score": score}
