@@ -1,7 +1,7 @@
 import asyncio
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from fastapi.concurrency import run_in_threadpool
@@ -10,11 +10,12 @@ from sqlalchemy import select
 from app.db.database import SessionLocal
 from app.models import InterviewSession, Message, Resume, User
 from app.services import auth as auth_service
-from app.services.interview import after_score, phase_for
+from app.services.interview import SESSION_MINUTES, after_score, phase_for
 from app.services.llm import LLMError
 from app.services.question_bank import get_bank_question
 from app.services.questions import next_bank_question, stream_next_question
 from app.services.scoring import MAX_ANSWER_CHARS, score_answer
+from app.services.session import complete_session
 
 router = APIRouter(prefix="/api/session", tags=["interview"])
 
@@ -23,21 +24,28 @@ class _Rejected(Exception):
     """The answer can't be taken. The message is safe to show the client."""
 
 
-def _can_join(access_token: str | None, session_id: uuid.UUID) -> bool:
-    """True when the cookie is valid and the session is this user's and still ongoing."""
+def _open_session(access_token: str | None, session_id: uuid.UUID) -> datetime | None:
+    """started_at when the cookie is valid and the session is this user's and still ongoing, else None."""
     user_id = auth_service.decode_jwt(access_token) if access_token else None
     if not user_id:
-        return False
+        return None
     try:
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        return False
+        return None
 
     # short session, not held open for the whole interview
     with SessionLocal() as db:
         user = db.get(User, user_uuid)
         session = db.get(InterviewSession, session_id)
-        return bool(user and session and session.user_id == user.id and session.status == "ongoing")
+        if user and session and session.user_id == user.id and session.status == "ongoing":
+            return session.started_at
+        return None
+
+
+def _complete(session_id: uuid.UUID) -> None:
+    with SessionLocal() as db:
+        complete_session(db, session_id)
 
 
 def _parse(data) -> tuple[str, int, bool] | None:
@@ -222,19 +230,35 @@ def _error(message: str) -> dict:
     return {"type": "error", "message": message}
 
 
+async def _end(ws: WebSocket, session_id: uuid.UUID) -> None:
+    """Complete the session, tell the client and close the connection."""
+    await run_in_threadpool(_complete, session_id)
+    await ws.send_json({"type": "ended"})
+    await ws.close()
+
+
 @router.websocket("/{session_id}/interview")
 async def interview(ws: WebSocket, session_id: uuid.UUID):
     # same refusal for "no cookie", "not found" and "not yours" so ids can't be probed
-    if not await run_in_threadpool(_can_join, ws.cookies.get("access_token"), session_id):
+    started_at = await run_in_threadpool(_open_session, ws.cookies.get("access_token"), session_id)
+    if not started_at:
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
     await ws.accept()
+    deadline = started_at + timedelta(minutes=SESSION_MINUTES)
     streak = 0  # in memory, starts again if the client reconnects
     try:
         while True:
+            # the time limit runs on started_at, so a client that goes quiet is still cut off
+            remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
             try:
-                data = await ws.receive_json()
+                if remaining <= 0:
+                    raise asyncio.TimeoutError
+                data = await asyncio.wait_for(ws.receive_json(), timeout=remaining)
+            except asyncio.TimeoutError:
+                await _end(ws, session_id)
+                return
             except ValueError:
                 await ws.send_json(_error("message must be JSON"))
                 continue
@@ -260,8 +284,7 @@ async def interview(ws: WebSocket, session_id: uuid.UUID):
 
             plan = await run_in_threadpool(_plan_next, session_id)
             if plan["phase"] == "ended":
-                await ws.send_json({"type": "ended"})
-                await ws.close()
+                await _end(ws, session_id)
                 return
 
             bank_id = plan.get("bank_id")
