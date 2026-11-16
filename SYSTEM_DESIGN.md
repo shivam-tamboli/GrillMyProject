@@ -192,6 +192,17 @@ Server messages. Every answer gets them in this order, and each has a `type` fie
 ```
 The score message is never sent before the answer and score are saved, and the question is never sent before the score message.
 
+Bank questions are not written by the LLM, so they arrive as a single question message with no chunks. The question message for a bank question has `question_type` `resume`, since bank questions are only used in the resume phase.
+
+Other server messages:
+```json
+{ "type": "error", "message": "string" }
+{ "type": "ended" }
+```
+`error` is sent when an answer cannot be taken: the `question_number` is not the current question, the question was already answered, the message is malformed, scoring failed (nothing is saved, the client can send the answer again), or the next question could not be written (the answer and score are already saved). The connection stays open. A failed question call is retried once, but only if no chunk has been sent yet, because the client would otherwise show the question twice. `ended` is sent in place of a question when the 45 minutes are over, and the server then closes the connection.
+
+For the MVP the server reads the history for the next question from the `messages` table in PostgreSQL on every answer. The difficulty streak is kept in memory for the connection and starts at 0 again if the client reconnects.
+
 ### GET /api/session/{session_id}/resume
 Resume a dropped session from the last saved question.
 
