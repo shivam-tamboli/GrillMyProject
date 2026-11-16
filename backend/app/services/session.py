@@ -1,6 +1,8 @@
 import uuid
+from datetime import datetime, timezone
+from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import InterviewSession, Message
@@ -19,3 +21,31 @@ def get_seen_bank_ids(db: Session, user_id: uuid.UUID) -> list[str]:
         .order_by(Message.created_at, Message.question_number)
     )
     return list(db.scalars(stmt))
+
+
+def complete_session(db: Session, session_id: uuid.UUID) -> InterviewSession:
+    """Mark the session completed with ended_at and overall_score.
+
+    overall_score is the average of the saved answer scores, a skipped answer
+    counts as 0. It stays empty when nothing was answered. A session that is
+    already completed is returned as it is.
+    """
+    # lock the row so the timer and the end endpoint can't both complete it
+    session = db.scalars(
+        select(InterviewSession).where(InterviewSession.id == session_id).with_for_update()
+    ).one()
+    if session.status == "completed":
+        return session
+
+    average = db.scalar(
+        select(func.avg(Message.score)).where(
+            Message.session_id == session_id,
+            Message.role == "user",
+            Message.score.is_not(None),
+        )
+    )
+    session.status = "completed"
+    session.ended_at = datetime.now(timezone.utc)
+    session.overall_score = Decimal(average).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP) if average is not None else None
+    db.commit()
+    return session
