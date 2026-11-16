@@ -199,7 +199,7 @@ Other server messages:
 { "type": "error", "message": "string" }
 { "type": "ended" }
 ```
-`error` is sent when an answer cannot be taken: the `question_number` is not the current question, the question was already answered, the message is malformed, scoring failed (nothing is saved, the client can send the answer again), or the next question could not be written (the answer and score are already saved). The connection stays open. A failed question call is retried once, but only if no chunk has been sent yet, because the client would otherwise show the question twice. `ended` is sent in place of a question when the 45 minutes are over, and the server then closes the connection.
+`error` is sent when an answer cannot be taken: the `question_number` is not the current question, the question was already answered, the message is malformed, scoring failed (nothing is saved, the client can send the answer again), or the next question could not be written (the answer and score are already saved). The connection stays open. A failed question call is retried once, but only if no chunk has been sent yet, because the client would otherwise show the question twice. `ended` is sent in place of a question when the 45 minutes are over, and the server then closes the connection. The server completes the session first, the same way the end endpoint does. The time limit runs on `started_at`, so `ended` also arrives when the client sends nothing until time runs out, and when a client connects to a session that is already past 45 minutes.
 
 For the MVP the server reads the history for the next question from the `messages` table in PostgreSQL on every answer. The difficulty streak is kept in memory for the connection and starts at 0 again if the client reconnects.
 
@@ -217,11 +217,11 @@ Response:
 ```
 
 ### POST /api/session/{session_id}/end
-End the session and trigger report generation.
+End the session early. It sets the status to `completed`, saves `ended_at` and sets `overall_score` to the average of the answer scores, where a skipped question counts as 0 and nothing answered gives `null`. Calling it again returns the same result. Another user's session returns 404. Report generation is not part of this endpoint yet, `report_id` is added to the response when reports are built.
 
 Response:
 ```json
-{ "session_id": "string", "report_id": "string" }
+{ "session_id": "string", "overall_score": 7.5 }
 ```
 
 ### GET /api/session/{session_id}/report
